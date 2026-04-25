@@ -1,0 +1,47 @@
+.tag-list-page {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  margin-bottom: 2rem;
+  color: var(--text-main);
+}
+
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.tag-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--card-bg);
+  border-radius: 8px;
+  color: var(--text-main);
+  transition: all 0.2s;
+}
+
+.tag-item:hover {
+  background: var(--accent);
+  color: var(--site-bg);
+}
+
+.tag-name {
+  font-weight: 500;
+}
+
+.tag-count {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.loading, .empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 3rem 0;
+}

@@ -1,0 +1,90 @@
+.category-manage-page {
+  max-width: 600px;
+  position: relative;
+}
+
+.category-manage-page h1 {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  color: var(--text-main);
+}
+
+.category-form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.category-form .input {
+  flex: 1;
+}
+
+.category-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card-bg);
+  border-radius: 8px;
+}
+
+.category-table th, .category-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.category-table th {
+  background: var(--site-bg);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.action-link {
+  margin-right: 1rem;
+  color: var(--accent);
+  font-size: 0.9rem;
+  background: none;
+  border: none;
+}
+
+.action-link.danger {
+  color: #ff4444;
+}
+
+.loading {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 3rem 0;
+}
+
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
+}
+
+.toast-success {
+  background: var(--accent);
+  color: var(--site-bg);
+}
+
+.toast-error {
+  background: #ff4444;
+  color: white;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

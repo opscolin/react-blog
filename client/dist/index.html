@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>我的博客</title>
+  <meta name="description" content="个人博客" />
+  <meta property="og:title" content="我的博客" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg" />
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <script type="module" crossorigin src="/assets/index-Cc2YYoMx.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DIXqpy_g.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    // Update title and meta dynamically from settings
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.blogTitle) {
+          document.title = data.blogTitle;
+          document.querySelector('meta[name="description"]').setAttribute('content', data.blogDescription || data.blogTitle);
+          document.querySelector('meta[property="og:title"]').setAttribute('content', data.blogTitle);
+        }
+      })
+      .catch(() => {});
+  </script>
+</body>
+</html>
