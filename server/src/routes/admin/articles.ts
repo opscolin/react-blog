@@ -1,50 +1,39 @@
 import { Router, Response } from 'express';
-import db from '../../db';
+import { sql } from '../../db';
 import { authMiddleware, AuthRequest } from '../../middleware/auth';
 import slugify from 'slugify';
 
 const router = Router();
 router.use(authMiddleware);
 
-interface Article {
-  id: number;
-  title: string;
-  slug: string;
-  content: string;
-  excerpt: string | null;
-  category_id: number | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
-
-router.get('/', (req: AuthRequest, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
   const offset = (page - 1) * limit;
 
-  const total = (db.prepare('SELECT COUNT(*) as count FROM articles').get() as { count: number }).count;
+  const countResult = await sql`SELECT COUNT(*) as count FROM articles`;
+  const total = countResult[0]?.count || 0;
 
-  const articles = db.prepare(`
+  const articles = await sql`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     ORDER BY a.created_at DESC
-    LIMIT ? OFFSET ?
-  `).all(limit, offset) as any[];
+    LIMIT ${limit} OFFSET ${offset}
+  `;
 
-  const articlesWithTags = articles.map(article => {
-    const tags = db.prepare(`
+  const articlesWithTags = await Promise.all(articles.map(async (article: any) => {
+    const tags = await sql`
       SELECT t.* FROM tags t
       JOIN article_tags at ON t.id = at.tag_id
-      WHERE at.article_id = ?
-    `).all(article.id);
+      WHERE at.article_id = ${article.id}
+    `;
     return {
       ...article,
       category: article.category_id ? { id: article.category_id, name: article.category_name, slug: article.category_slug } : null,
       tags
     };
-  });
+  }));
 
   res.json({
     articles: articlesWithTags,
@@ -52,26 +41,27 @@ router.get('/', (req: AuthRequest, res: Response) => {
   });
 });
 
-router.get('/:id', (req: AuthRequest, res: Response) => {
+router.get('/:id', async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
-  const article = db.prepare(`
+  const articleResult = await sql`
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
-    WHERE a.id = ?
-  `).get(id) as any;
+    WHERE a.id = ${id}
+  `;
+  const article = articleResult[0];
 
   if (!article) {
     res.status(404).json({ error: 'Article not found' });
     return;
   }
 
-  const tags = db.prepare(`
+  const tags = await sql`
     SELECT t.* FROM tags t
     JOIN article_tags at ON t.id = at.tag_id
-    WHERE at.article_id = ?
-  `).all(id);
+    WHERE at.article_id = ${id}
+  `;
 
   res.json({
     ...article,
@@ -80,7 +70,7 @@ router.get('/:id', (req: AuthRequest, res: Response) => {
   });
 });
 
-router.post('/', (req: AuthRequest, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   const { title, content, excerpt, categoryId, tags, status, createdAt } = req.body;
 
   if (!title || !content) {
@@ -89,80 +79,86 @@ router.post('/', (req: AuthRequest, res: Response) => {
   }
 
   let slug = slugify(title, { lower: true, strict: true });
-  const existing = db.prepare('SELECT id FROM articles WHERE slug = ?').get(slug);
-  if (existing) {
+  const existingSlug = await sql`SELECT id FROM articles WHERE slug = ${slug}`;
+  if (existingSlug.length > 0) {
     slug = `${slug}-${Date.now()}`;
   }
 
-  const result = db.prepare(`
+  const insertResult = await sql`
     INSERT INTO articles (title, slug, content, excerpt, category_id, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(title, slug, content, excerpt || null, categoryId || null, status || 'draft', createdAt || new Date().toISOString());
+    VALUES (${title}, ${slug}, ${content}, ${excerpt || null}, ${categoryId || null}, ${status || 'draft'}, ${createdAt || new Date().toISOString()})
+    RETURNING *
+  `;
 
-  const articleId = result.lastInsertRowid;
+  const article = insertResult[0];
 
   if (tags && tags.length > 0) {
-    const insertTag = db.prepare('INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)');
-    tags.forEach((tagId: number) => {
-      insertTag.run(articleId, tagId);
-    });
+    for (const tagId of tags) {
+      await sql`INSERT INTO article_tags (article_id, tag_id) VALUES (${article.id}, ${tagId})`;
+    }
   }
 
-  const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(articleId);
   res.status(201).json(article);
 });
 
-router.put('/:id', (req: AuthRequest, res: Response) => {
+router.put('/:id', async (req: AuthRequest, res: Response) => {
   const { title, content, excerpt, categoryId, tags, status, createdAt } = req.body;
   const { id } = req.params;
 
-  const existing = db.prepare('SELECT * FROM articles WHERE id = ?').get(id);
+  const existingResult = await sql`SELECT * FROM articles WHERE id = ${id}`;
+  const existing = existingResult[0];
   if (!existing) {
     res.status(404).json({ error: 'Article not found' });
     return;
   }
 
-  let slug = (existing as Article).slug;
-  if (title && title !== (existing as Article).title) {
+  let slug = existing.slug;
+  if (title && title !== existing.title) {
     slug = slugify(title, { lower: true, strict: true });
-    const conflict = db.prepare('SELECT id FROM articles WHERE slug = ? AND id != ?').get(slug, id);
-    if (conflict) {
+    const conflictResult = await sql`SELECT id FROM articles WHERE slug = ${slug} AND id != ${id}`;
+    if (conflictResult.length > 0) {
       slug = `${slug}-${Date.now()}`;
     }
   }
 
-  const updatedCreatedAt = createdAt || (existing as Article).created_at;
+  const updatedCreatedAt = createdAt || existing.created_at;
 
-  db.prepare(`
+  await sql`
     UPDATE articles
-    SET title = ?, slug = ?, content = ?, excerpt = ?, category_id = ?, status = ?, created_at = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).run(title || (existing as Article).title, slug, content || (existing as Article).content, excerpt || null, categoryId || null, status || (existing as Article).status, updatedCreatedAt, id);
+    SET title = ${title || existing.title},
+        slug = ${slug},
+        content = ${content || existing.content},
+        excerpt = ${excerpt || null},
+        category_id = ${categoryId || null},
+        status = ${status || existing.status},
+        created_at = ${updatedCreatedAt},
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ${id}
+  `;
 
   if (tags !== undefined) {
-    db.prepare('DELETE FROM article_tags WHERE article_id = ?').run(id);
+    await sql`DELETE FROM article_tags WHERE article_id = ${id}`;
     if (tags && tags.length > 0) {
-      const insertTag = db.prepare('INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)');
-      tags.forEach((tagId: number) => {
-        insertTag.run(id, tagId);
-      });
+      for (const tagId of tags) {
+        await sql`INSERT INTO article_tags (article_id, tag_id) VALUES (${id}, ${tagId})`;
+      }
     }
   }
 
-  const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(id);
-  res.json(article);
+  const articleResult = await sql`SELECT * FROM articles WHERE id = ${id}`;
+  res.json(articleResult[0]);
 });
 
-router.delete('/:id', (req: AuthRequest, res: Response) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
-  const existing = db.prepare('SELECT id FROM articles WHERE id = ?').get(id);
-  if (!existing) {
+  const existingResult = await sql`SELECT id FROM articles WHERE id = ${id}`;
+  if (existingResult.length === 0) {
     res.status(404).json({ error: 'Article not found' });
     return;
   }
 
-  db.prepare('DELETE FROM articles WHERE id = ?').run(id);
+  await sql`DELETE FROM articles WHERE id = ${id}`;
   res.json({ success: true });
 });
 

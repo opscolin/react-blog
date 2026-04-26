@@ -1,34 +1,32 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const db_1 = __importDefault(require("../../db"));
-const auth_1 = require("../../middleware/auth");
-const router = (0, express_1.Router)();
-router.use(auth_1.authMiddleware);
-router.get('/', (_, res) => {
+import { Router } from 'express';
+import { sql } from '../../db';
+import { authMiddleware } from '../../middleware/auth';
+const router = Router();
+router.use(authMiddleware);
+router.get('/', async (_, res) => {
     const settings = {};
-    const rows = db_1.default.prepare('SELECT key, value FROM settings').all();
-    rows.forEach(row => {
+    const rows = await sql `SELECT key, value FROM settings`;
+    for (const row of rows) {
         try {
             settings[row.key] = JSON.parse(row.value);
         }
         catch {
             settings[row.key] = row.value;
         }
-    });
+    }
     res.json(settings);
 });
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
     const updates = req.body;
-    const upsert = db_1.default.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-    Object.entries(updates).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(updates)) {
         const valueStr = typeof value === 'string' ? value : JSON.stringify(value);
-        upsert.run(key, valueStr);
-    });
+        await sql `
+      INSERT INTO settings (key, value)
+      VALUES (${key}, ${valueStr})
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    `;
+    }
     res.json({ success: true });
 });
-exports.default = router;
+export default router;
 //# sourceMappingURL=settings.js.map

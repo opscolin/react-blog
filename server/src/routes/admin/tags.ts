@@ -1,16 +1,16 @@
 import { Router, Response } from 'express';
-import db from '../../db';
+import { sql } from '../../db';
 import { authMiddleware, AuthRequest } from '../../middleware/auth';
 
 const router = Router();
 router.use(authMiddleware);
 
-router.get('/', (_, res: Response) => {
-  const tags = db.prepare('SELECT * FROM tags ORDER BY name').all();
+router.get('/', async (_: AuthRequest, res: Response) => {
+  const tags = await sql`SELECT * FROM tags ORDER BY name`;
   res.json(tags);
 });
 
-router.post('/', (req: AuthRequest, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   const { name } = req.body;
 
   if (!name) {
@@ -18,43 +18,45 @@ router.post('/', (req: AuthRequest, res: Response) => {
     return;
   }
 
-  const existing = db.prepare('SELECT id FROM tags WHERE name = ?').get(name);
-  if (existing) {
+  const existingResult = await sql`SELECT id FROM tags WHERE name = ${name}`;
+  if (existingResult.length > 0) {
     res.status(400).json({ error: 'Tag already exists' });
     return;
   }
 
-  const result = db.prepare('INSERT INTO tags (name) VALUES (?)').run(name);
-  const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json(tag);
+  const insertResult = await sql`
+    INSERT INTO tags (name) VALUES (${name}) RETURNING *
+  `;
+  res.status(201).json(insertResult[0]);
 });
 
-router.put('/:id', (req: AuthRequest, res: Response) => {
+router.put('/:id', async (req: AuthRequest, res: Response) => {
   const { name } = req.body;
   const { id } = req.params;
 
-  const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(id);
+  const existingResult = await sql`SELECT * FROM tags WHERE id = ${id}`;
+  const existing = existingResult[0];
   if (!existing) {
     res.status(404).json({ error: 'Tag not found' });
     return;
   }
 
-  db.prepare('UPDATE tags SET name = ? WHERE id = ?').run(name || (existing as any).name, id);
-  const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(id);
-  res.json(tag);
+  await sql`UPDATE tags SET name = ${name || existing.name} WHERE id = ${id}`;
+  const updatedResult = await sql`SELECT * FROM tags WHERE id = ${id}`;
+  res.json(updatedResult[0]);
 });
 
-router.delete('/:id', (req: AuthRequest, res: Response) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
-  const existing = db.prepare('SELECT id FROM tags WHERE id = ?').get(id);
-  if (!existing) {
+  const existingResult = await sql`SELECT id FROM tags WHERE id = ${id}`;
+  if (existingResult.length === 0) {
     res.status(404).json({ error: 'Tag not found' });
     return;
   }
 
-  db.prepare('DELETE FROM article_tags WHERE tag_id = ?').run(id);
-  db.prepare('DELETE FROM tags WHERE id = ?').run(id);
+  await sql`DELETE FROM article_tags WHERE tag_id = ${id}`;
+  await sql`DELETE FROM tags WHERE id = ${id}`;
   res.json({ success: true });
 });
 

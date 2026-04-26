@@ -1,35 +1,37 @@
 import { Router, Response } from 'express';
-import db from '../../db';
+import { sql } from '../../db';
 import { authMiddleware, AuthRequest } from '../../middleware/auth';
 
 const router = Router();
 router.use(authMiddleware);
 
-router.get('/', (_, res: Response) => {
+router.get('/', async (_: AuthRequest, res: Response) => {
   const settings: Record<string, any> = {};
 
-  const rows = db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[];
+  const rows: { key: string; value: string }[] = await sql`SELECT key, value FROM settings`;
 
-  rows.forEach(row => {
+  for (const row of rows) {
     try {
       settings[row.key] = JSON.parse(row.value);
     } catch {
       settings[row.key] = row.value;
     }
-  });
+  }
 
   res.json(settings);
 });
 
-router.put('/', (req: AuthRequest, res: Response) => {
+router.put('/', async (req: AuthRequest, res: Response) => {
   const updates = req.body;
 
-  const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-
-  Object.entries(updates).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(updates)) {
     const valueStr = typeof value === 'string' ? value : JSON.stringify(value);
-    upsert.run(key, valueStr);
-  });
+    await sql`
+      INSERT INTO settings (key, value)
+      VALUES (${key}, ${valueStr})
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    `;
+  }
 
   res.json({ success: true });
 });

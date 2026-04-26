@@ -1,20 +1,20 @@
 import { Router } from 'express';
-import db from '../db';
+import { sql } from '../db';
 
 const router = Router();
 
-router.get('/', (_, res) => {
+router.get('/', async (_, res) => {
   const settings: Record<string, any> = {};
 
-  const rows = db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[];
+  const rows: { key: string; value: string }[] = await sql`SELECT key, value FROM settings`;
 
-  rows.forEach(row => {
+  for (const row of rows) {
     try {
       settings[row.key] = JSON.parse(row.value);
     } catch {
       settings[row.key] = row.value;
     }
-  });
+  }
 
   res.json(settings);
 });

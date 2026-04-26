@@ -1,20 +1,15 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const db_1 = __importDefault(require("../db"));
-const router = (0, express_1.Router)();
-router.get('/', (_, res) => {
-    const articles = db_1.default.prepare(`
+import { Router } from 'express';
+import { sql } from '../db';
+const router = Router();
+router.get('/', async (_, res) => {
+    const articles = await sql `
     SELECT id, title, slug, excerpt, created_at
     FROM articles
     WHERE status = 'published'
     ORDER BY created_at DESC
-  `).all();
+  `;
     const archives = {};
-    articles.forEach(article => {
+    articles.forEach((article) => {
         const date = new Date(article.created_at);
         const year = date.getFullYear().toString();
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -28,5 +23,5 @@ router.get('/', (_, res) => {
     });
     res.json(archives);
 });
-exports.default = router;
+export default router;
 //# sourceMappingURL=archives.js.map

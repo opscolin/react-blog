@@ -1,18 +1,11 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcrypt';
-import db from '../db';
+import { sql } from '../db';
 import { authMiddleware, generateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-interface User {
-  id: number;
-  username: string;
-  password_hash: string;
-  created_at: string;
-}
-
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -20,14 +13,17 @@ router.post('/login', (req, res) => {
     return;
   }
 
-  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as User | undefined;
+  const userResult = await sql`
+    SELECT * FROM users WHERE username = ${username}
+  `;
+  const user = userResult[0];
 
   if (!user) {
     res.status(401).json({ error: 'Invalid credentials' });
     return;
   }
 
-  const valid = bcrypt.compareSync(password, user.password_hash);
+  const valid = await bcrypt.compare(password, user.password_hash);
 
   if (!valid) {
     res.status(401).json({ error: 'Invalid credentials' });
@@ -42,8 +38,12 @@ router.post('/login', (req, res) => {
   });
 });
 
-router.get('/me', authMiddleware, (req: AuthRequest, res: Response) => {
-  const user = db.prepare('SELECT id, username, created_at FROM users WHERE id = ?').get(req.userId);
+router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const userResult = await sql`
+    SELECT id, username, created_at FROM users WHERE id = ${userId}
+  `;
+  const user = userResult[0];
 
   if (!user) {
     res.status(404).json({ error: 'User not found' });

@@ -1,16 +1,16 @@
 import { Router } from 'express';
-import db from '../db';
+import { sql } from '../db';
 
 const router = Router();
 
-router.get('/', (_, res) => {
-  const categories = db.prepare(`
+router.get('/', async (_, res) => {
+  const categories = await sql`
     SELECT c.*, COUNT(a.id) as article_count
     FROM categories c
     LEFT JOIN articles a ON c.id = a.category_id AND a.status = 'published'
     GROUP BY c.id
     ORDER BY c.name
-  `).all();
+  `;
 
   res.json(categories);
 });

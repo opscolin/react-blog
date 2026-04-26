@@ -1,23 +1,21 @@
 import bcrypt from 'bcrypt';
-import Database from 'better-sqlite3';
+import postgres from 'postgres';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 
-const dbPath = path.join(__dirname, '../data/blog.db');
-const dataDir = path.dirname(dbPath);
-
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+if (!connectionString) {
+  console.error('DATABASE_URL or POSTGRES_URL environment variable is required');
+  process.exit(1);
 }
 
-const db = new Database(dbPath);
-db.pragma('foreign_keys = ON');
+const sql = postgres(connectionString, { ssl: 'require' });
 
-const schemaPath = path.join(__dirname, '../src/db/schema.sql');
+const schemaPath = path.join(__dirname, '../src/db/schema.pg.sql');
 if (fs.existsSync(schemaPath)) {
   const schema = fs.readFileSync(schemaPath, 'utf-8');
-  db.exec(schema);
+  await sql.unsafe(schema);
 }
 
 const rl = readline.createInterface({
@@ -43,21 +41,23 @@ async function main() {
     process.exit(1);
   }
 
-  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(finalUsername);
+  const existingResult = await sql`SELECT id FROM users WHERE username = ${finalUsername}`;
+  const existing = existingResult[0];
 
   if (existing) {
     console.log(`User "${finalUsername}" already exists. Updating password...`);
-    const hash = bcrypt.hashSync(password, 12);
-    db.prepare('UPDATE users SET password_hash = ? WHERE username = ?').run(hash, finalUsername);
+    const hash = await bcrypt.hash(password, 12);
+    await sql`UPDATE users SET password_hash = ${hash} WHERE username = ${finalUsername}`;
     console.log('Password updated successfully!');
   } else {
     console.log(`Creating user "${finalUsername}"...`);
-    const hash = bcrypt.hashSync(password, 12);
-    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(finalUsername, hash);
+    const hash = await bcrypt.hash(password, 12);
+    await sql`INSERT INTO users (username, password_hash) VALUES (${finalUsername}, ${hash})`;
     console.log('Admin account created successfully!');
   }
 
   rl.close();
+  await sql.end();
 }
 
 main().catch(err => {

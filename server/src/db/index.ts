@@ -1,23 +1,28 @@
-import Database from 'better-sqlite3';
+import postgres from 'postgres';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const dbPath = path.join(__dirname, '../../data/blog.db');
-const dataDir = path.dirname(dbPath);
+const isVercel = process.env.VERCEL === '1';
 
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL or POSTGRES_URL environment variable is required');
 }
 
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+const sql = postgres(connectionString, {
+  ssl: isVercel ? 'require' : false,
+  max: isVercel ? 1 : 10,
+  transform: {
+    undefined: null
+  }
+});
 
-export function initDatabase(): void {
-  const schemaPath = path.join(__dirname, 'schema.sql');
+export async function initDatabase(): Promise<void> {
+  const schemaPath = path.join(__dirname, 'schema.pg.sql');
   const schema = fs.readFileSync(schemaPath, 'utf-8');
-  db.exec(schema);
+  await sql.unsafe(schema);
   console.log('Database initialized');
 }
 
-export default db;
+export { sql };

@@ -1,19 +1,19 @@
 import { Router } from 'express';
-import db from '../db';
+import { sql } from '../db';
 
 const router = Router();
 
-router.get('/', (_, res) => {
-  const articles = db.prepare(`
+router.get('/', async (_, res) => {
+  const articles = await sql`
     SELECT id, title, slug, excerpt, created_at
     FROM articles
     WHERE status = 'published'
     ORDER BY created_at DESC
-  `).all() as any[];
+  `;
 
   const archives: Record<string, Record<string, any[]>> = {};
 
-  articles.forEach(article => {
+  articles.forEach((article: any) => {
     const date = new Date(article.created_at);
     const year = date.getFullYear().toString();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
