@@ -1,8 +1,10 @@
-import { Router } from 'express';
-import { sql } from '../db';
-const router = Router();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const db_1 = require("../db");
+const router = (0, express_1.Router)();
 router.get('/', async (_, res) => {
-    const tags = await sql `
+    const tags = await (0, db_1.sql) `
     SELECT t.*, COUNT(at.article_id) as article_count
     FROM tags t
     LEFT JOIN article_tags at ON t.id = at.tag_id
@@ -12,5 +14,5 @@ router.get('/', async (_, res) => {
   `;
     res.json(tags);
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=tags.js.map

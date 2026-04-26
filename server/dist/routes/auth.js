@@ -1,15 +1,20 @@
-import { Router } from 'express';
-import bcrypt from 'bcrypt';
-import { sql } from '../db';
-import { authMiddleware, generateToken } from '../middleware/auth';
-const router = Router();
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const bcrypt_1 = __importDefault(require("bcrypt"));
+const db_1 = require("../db");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
         res.status(400).json({ error: 'Username and password required' });
         return;
     }
-    const userResult = await sql `
+    const userResult = await (0, db_1.sql) `
     SELECT * FROM users WHERE username = ${username}
   `;
     const user = userResult[0];
@@ -17,20 +22,20 @@ router.post('/login', async (req, res) => {
         res.status(401).json({ error: 'Invalid credentials' });
         return;
     }
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const valid = await bcrypt_1.default.compare(password, user.password_hash);
     if (!valid) {
         res.status(401).json({ error: 'Invalid credentials' });
         return;
     }
-    const token = generateToken(user.id);
+    const token = (0, auth_1.generateToken)(user.id);
     res.json({
         token,
         user: { id: user.id, username: user.username }
     });
 });
-router.get('/me', authMiddleware, async (req, res) => {
+router.get('/me', auth_1.authMiddleware, async (req, res) => {
     const userId = req.userId;
-    const userResult = await sql `
+    const userResult = await (0, db_1.sql) `
     SELECT id, username, created_at FROM users WHERE id = ${userId}
   `;
     const user = userResult[0];
@@ -40,5 +45,5 @@ router.get('/me', authMiddleware, async (req, res) => {
     }
     res.json(user);
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=auth.js.map

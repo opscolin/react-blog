@@ -1,8 +1,10 @@
-import { Router } from 'express';
-import { sql } from '../db';
-const router = Router();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const db_1 = require("../db");
+const router = (0, express_1.Router)();
 router.get('/', async (_, res) => {
-    const articles = await sql `
+    const articles = await (0, db_1.sql) `
     SELECT id, title, slug, excerpt, created_at
     FROM articles
     WHERE status = 'published'
@@ -23,5 +25,5 @@ router.get('/', async (_, res) => {
     });
     res.json(archives);
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=archives.js.map

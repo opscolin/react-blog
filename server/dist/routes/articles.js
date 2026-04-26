@@ -1,6 +1,8 @@
-import { Router } from 'express';
-import { sql } from '../db';
-const router = Router();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const db_1 = require("../db");
+const router = (0, express_1.Router)();
 router.get('/', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -35,13 +37,13 @@ router.get('/', async (req, res) => {
         paramIndex += 3;
     }
     const countQuery = query.replace('SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug', 'SELECT COUNT(DISTINCT a.id) as count');
-    const countResult = await sql `${sql.unsafe(countQuery, ...params)}`;
+    const countResult = await (0, db_1.sql) `${db_1.sql.unsafe(countQuery, ...params)}`;
     const total = countResult[0]?.count || 0;
     query += ` ORDER BY a.created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(limit, offset);
-    const articles = await sql `${sql.unsafe(query, ...params)}`;
+    const articles = await (0, db_1.sql) `${db_1.sql.unsafe(query, ...params)}`;
     const articlesWithTags = await Promise.all(articles.map(async (article) => {
-        const tags = await sql `
+        const tags = await (0, db_1.sql) `
       SELECT t.* FROM tags t
       JOIN article_tags at ON t.id = at.tag_id
       WHERE at.article_id = ${article.id}
@@ -58,7 +60,7 @@ router.get('/', async (req, res) => {
     });
 });
 router.get('/:slug', async (req, res) => {
-    const articleResult = await sql `
+    const articleResult = await (0, db_1.sql) `
     SELECT a.*, c.name as category_name, c.slug as category_slug
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
@@ -69,7 +71,7 @@ router.get('/:slug', async (req, res) => {
         res.status(404).json({ error: 'Article not found' });
         return;
     }
-    const tags = await sql `
+    const tags = await (0, db_1.sql) `
     SELECT t.* FROM tags t
     JOIN article_tags at ON t.id = at.tag_id
     WHERE at.article_id = ${article.id}
@@ -80,5 +82,5 @@ router.get('/:slug', async (req, res) => {
         tags
     });
 });
-export default router;
+exports.default = router;
 //# sourceMappingURL=articles.js.map

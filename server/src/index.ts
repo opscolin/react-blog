@@ -18,7 +18,9 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-await initDatabase();
+initDatabase().catch(err => {
+  console.error('Database initialization error:', err);
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/articles', articlesRoutes);
@@ -41,4 +43,4 @@ if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
   });
 }
 
-export default app;
+module.exports = app;
