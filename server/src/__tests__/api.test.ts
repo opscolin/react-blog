@@ -1,55 +1,58 @@
 import request from 'supertest';
 import express from 'express';
 import bcrypt from 'bcrypt';
-import Database from 'better-sqlite3';
+import postgres from 'postgres';
 import * as fs from 'fs';
 import * as path from 'path';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = 'test-secret';
 
-function createTestApp() {
+const testConnectionString = process.env.TEST_DATABASE_URL || 'postgresql://localhost:5432/blog_test';
+
+async function createTestApp() {
   const app = express();
   app.use(express.json());
 
-  const dbPath = path.join(__dirname, '../data/test.db');
-  const dataDir = path.dirname(dbPath);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
+  const sql = postgres(testConnectionString, { ssl: 'require', max: 1 });
 
-  const db = new Database(dbPath);
-  db.pragma('foreign_keys = ON');
-  db.pragma('journal_mode = WAL');
+  await sql.unsafe(`
+    DROP TABLE IF EXISTS article_tags;
+    DROP TABLE IF EXISTS articles;
+    DROP TABLE IF EXISTS categories;
+    DROP TABLE IF EXISTS tags;
+    DROP TABLE IF EXISTS settings;
+    DROP TABLE IF EXISTS users;
+  `);
 
-  db.exec(`
+  await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS categories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       slug TEXT UNIQUE NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS tags (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT UNIQUE NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS articles (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
       slug TEXT UNIQUE NOT NULL,
       content TEXT NOT NULL,
       excerpt TEXT,
       category_id INTEGER REFERENCES categories(id),
       status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'published')),
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS article_tags (
       article_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,
@@ -60,8 +63,8 @@ function createTestApp() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
-    INSERT OR IGNORE INTO settings (key, value) VALUES ('blogTitle', '"Test Blog"');
-    INSERT OR IGNORE INTO settings (key, value) VALUES ('menuVisibility', '{"categories":true,"tags":true,"archives":true,"about":true}');
+    INSERT INTO settings (key, value) VALUES ('blogTitle', '"Test Blog"') ON CONFLICT DO NOTHING;
+    INSERT INTO settings (key, value) VALUES ('menuVisibility', '{"categories":true,"tags":true,"archives":true,"about":true}') ON CONFLICT DO NOTHING;
   `);
 
   const authMiddleware = (req: any, res: any, next: any) => {
@@ -81,27 +84,44 @@ function createTestApp() {
 
   const generateToken = (userId: number) => jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
 
-  // Auth routes
-  app.post('/api/auth/login', (req, res) => {
+  const wrapQuery = async (query: string, params: any[] = []) => {
+    return await sql.unsafe(query, params);
+  };
+
+  const getOne = async (query: string, params: any[] = []) => {
+    const result = await sql.unsafe(query, params);
+    return result[0] || null;
+  };
+
+  const getAll = async (query: string, params: any[] = []) => {
+    return await sql.unsafe(query, params);
+  };
+
+  const run = async (query: string, params: any[] = []) => {
+    return await sql.unsafe(query, params);
+  };
+
+  app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password required' });
     }
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
+    const users = await sql`SELECT * FROM users WHERE username = ${username}`;
+    const user = users[0];
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     res.json({ token: generateToken(user.id), user: { id: user.id, username: user.username } });
   });
 
-  app.get('/api/auth/me', authMiddleware, (req: any, res: any) => {
-    const user = db.prepare('SELECT id, username, created_at FROM users WHERE id = ?').get(req.userId);
+  app.get('/api/auth/me', authMiddleware, async (req: any, res: any) => {
+    const users = await sql`SELECT id, username, created_at FROM users WHERE id = ${req.userId}`;
+    const user = users[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   });
 
-  // Public routes
-  app.get('/api/articles', (req, res) => {
+  app.get('/api/articles', async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
@@ -113,55 +133,56 @@ function createTestApp() {
     `;
     const params: any[] = [];
     if (search) {
-      query += ' AND (a.title LIKE ? OR a.content LIKE ? OR a.excerpt LIKE ?)';
+      query += ' AND (a.title ILIKE $1 OR a.content ILIKE $2 OR a.excerpt ILIKE $3)';
       const searchPattern = `%${search}%`;
       params.push(searchPattern, searchPattern, searchPattern);
     }
     const countQuery = query.replace('SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug', 'SELECT COUNT(DISTINCT a.id) as count');
-    const total = (db.prepare(countQuery).get(...params) as any).count;
-    query += ' ORDER BY a.created_at DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
-    const articles = db.prepare(query).all(...params) as any[];
-    const result = articles.map(a => {
-      const tags = db.prepare('SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?').all(a.id);
-      return { ...a, category: a.category_id ? { id: a.category_id, name: a.category_name, slug: a.category_slug } : null, tags };
-    });
+    const countResult = await sql.unsafe(countQuery, params);
+    const total = countResult[0]?.count || 0;
+    query += ` ORDER BY a.created_at DESC LIMIT ${limit} OFFSET ${offset}`;
+    const articles = await sql.unsafe(query, params);
+    const result = await Promise.all(articles.map(async (a: any) => {
+      const tagsResult = await sql`SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ${a.id}`;
+      return { ...a, category: a.category_id ? { id: a.category_id, name: a.category_name, slug: a.category_slug } : null, tags: tagsResult };
+    }));
     res.json({ articles: result, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   });
 
-  app.get('/api/articles/:slug', (req, res) => {
-    const article = db.prepare(`
+  app.get('/api/articles/:slug', async (req, res) => {
+    const articles = await sql`
       SELECT a.*, c.name as category_name, c.slug as category_slug
       FROM articles a LEFT JOIN categories c ON a.category_id = c.id
-      WHERE a.slug = ? AND a.status = 'published'
-    `).get(req.params.slug) as any;
+      WHERE a.slug = ${req.params.slug} AND a.status = 'published'
+    `;
+    const article = articles[0];
     if (!article) return res.status(404).json({ error: 'Article not found' });
-    const tags = db.prepare('SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?').all(article.id);
-    res.json({ ...article, category: article.category_id ? { id: article.category_id, name: article.category_name, slug: article.category_slug } : null, tags });
+    const tagsResult = await sql`SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ${article.id}`;
+    res.json({ ...article, category: article.category_id ? { id: article.category_id, name: article.category_name, slug: article.category_slug } : null, tags: tagsResult });
   });
 
-  app.get('/api/categories', (_, res) => {
-    const categories = db.prepare(`
+  app.get('/api/categories', async (_, res) => {
+    const categories = await sql`
       SELECT c.*, COUNT(a.id) as article_count FROM categories c
       LEFT JOIN articles a ON c.id = a.category_id AND a.status = 'published'
       GROUP BY c.id ORDER BY c.name
-    `).all();
+    `;
     res.json(categories);
   });
 
-  app.get('/api/tags', (_, res) => {
-    const tags = db.prepare(`
+  app.get('/api/tags', async (_, res) => {
+    const tags = await sql`
       SELECT t.*, COUNT(at.article_id) as article_count FROM tags t
       LEFT JOIN article_tags at ON t.id = at.tag_id LEFT JOIN articles a ON at.article_id = a.id AND a.status = 'published'
       GROUP BY t.id ORDER BY t.name
-    `).all();
+    `;
     res.json(tags);
   });
 
-  app.get('/api/archives', (_, res) => {
-    const articles = db.prepare("SELECT id, title, slug, excerpt, created_at FROM articles WHERE status = 'published' ORDER BY created_at DESC").all() as any[];
+  app.get('/api/archives', async (_, res) => {
+    const articles = await sql`SELECT id, title, slug, excerpt, created_at FROM articles WHERE status = 'published' ORDER BY created_at DESC`;
     const archives: Record<string, Record<string, any[]>> = {};
-    articles.forEach(a => {
+    (articles as any[]).forEach(a => {
       const d = new Date(a.created_at);
       const y = d.getFullYear().toString();
       const m = (d.getMonth() + 1).toString().padStart(2, '0');
@@ -172,172 +193,206 @@ function createTestApp() {
     res.json(archives);
   });
 
-  app.get('/api/settings', (_, res) => {
-    const rows = db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[];
+  app.get('/api/settings', async (_, res) => {
+    const rows = await sql`SELECT key, value FROM settings`;
     const settings: Record<string, any> = {};
-    rows.forEach(r => { try { settings[r.key] = JSON.parse(r.value); } catch { settings[r.key] = r.value; } });
+    (rows as { key: string; value: string }[]).forEach(r => { try { settings[r.key] = JSON.parse(r.value); } catch { settings[r.key] = r.value; } });
     res.json(settings);
   });
 
-  // Admin routes
-  app.get('/api/admin/articles', authMiddleware, (req: any, res: any) => {
+  app.get('/api/admin/articles', authMiddleware, async (req: any, res: any) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = (page - 1) * limit;
-    const total = (db.prepare('SELECT COUNT(*) as count FROM articles').get() as any).count;
-    const articles = db.prepare(`
+    const countResult = await sql`SELECT COUNT(*) as count FROM articles`;
+    const total = countResult[0]?.count || 0;
+    const articles = await sql`
       SELECT a.*, c.name as category_name, c.slug as category_slug FROM articles a
-      LEFT JOIN categories c ON a.category_id = c.id ORDER BY a.created_at DESC LIMIT ? OFFSET ?
-    `).all(limit, offset) as any[];
-    const result = articles.map(a => {
-      const tags = db.prepare('SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?').all(a.id);
-      return { ...a, category: a.category_id ? { id: a.category_id, name: a.category_name, slug: a.category_slug } : null, tags };
-    });
+      LEFT JOIN categories c ON a.category_id = c.id ORDER BY a.created_at DESC LIMIT ${limit} OFFSET ${offset}
+    `;
+    const result = await Promise.all((articles as any[]).map(async (a: any) => {
+      const tagsResult = await sql`SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ${a.id}`;
+      return { ...a, category: a.category_id ? { id: a.category_id, name: a.category_name, slug: a.category_slug } : null, tags: tagsResult };
+    }));
     res.json({ articles: result, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   });
 
-  app.get('/api/admin/articles/:id', authMiddleware, (req: any, res: any) => {
-    const article = db.prepare(`
+  app.get('/api/admin/articles/:id', authMiddleware, async (req: any, res: any) => {
+    const articles = await sql`
       SELECT a.*, c.name as category_name, c.slug as category_slug FROM articles a
-      LEFT JOIN categories c ON a.category_id = c.id WHERE a.id = ?
-    `).get(req.params.id) as any;
+      LEFT JOIN categories c ON a.category_id = c.id WHERE a.id = ${req.params.id}
+    `;
+    const article = articles[0];
     if (!article) return res.status(404).json({ error: 'Article not found' });
-    const tags = db.prepare('SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?').all(article.id);
-    res.json({ ...article, category: article.category_id ? { id: article.category_id, name: article.category_name, slug: article.category_slug } : null, tags });
+    const tagsResult = await sql`SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ${article.id}`;
+    res.json({ ...article, category: article.category_id ? { id: article.category_id, name: article.category_name, slug: article.category_slug } : null, tags: tagsResult });
   });
 
-  app.post('/api/admin/articles', authMiddleware, (req: any, res: any) => {
+  app.post('/api/admin/articles', authMiddleware, async (req: any, res: any) => {
     const { title, content, excerpt, categoryId, tags, status } = req.body;
     if (!title || !content) return res.status(400).json({ error: 'Title and content required' });
     const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now();
-    const result = db.prepare('INSERT INTO articles (title, slug, content, excerpt, category_id, status) VALUES (?, ?, ?, ?, ?, ?)').run(title, slug, content, excerpt || null, categoryId || null, status || 'draft');
-    const articleId = result.lastInsertRowid;
+    const result = await sql`
+      INSERT INTO articles (title, slug, content, excerpt, category_id, status)
+      VALUES (${title}, ${slug}, ${content}, ${excerpt || null}, ${categoryId || null}, ${status || 'draft'})
+      RETURNING *
+    `;
+    const article = result[0];
     if (tags?.length) {
-      const insertTag = db.prepare('INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)');
-      tags.forEach((tagId: number) => insertTag.run(articleId, tagId));
-    }
-    res.status(201).json(db.prepare('SELECT * FROM articles WHERE id = ?').get(articleId));
-  });
-
-  app.put('/api/admin/articles/:id', authMiddleware, (req: any, res: any) => {
-    const { title, content, excerpt, categoryId, tags, status } = req.body;
-    const existing = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id) as any;
-    if (!existing) return res.status(404).json({ error: 'Article not found' });
-    db.prepare('UPDATE articles SET title = ?, content = ?, excerpt = ?, category_id = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .run(title || existing.title, content || existing.content, excerpt ?? existing.excerpt, categoryId ?? existing.category_id, status || existing.status, req.params.id);
-    if (tags !== undefined) {
-      db.prepare('DELETE FROM article_tags WHERE article_id = ?').run(req.params.id);
-      if (tags?.length) {
-        const insertTag = db.prepare('INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)');
-        tags.forEach((tagId: number) => insertTag.run(req.params.id, tagId));
+      for (const tagId of tags) {
+        await sql`INSERT INTO article_tags (article_id, tag_id) VALUES (${article.id}, ${tagId})`;
       }
     }
-    res.json(db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id));
+    res.status(201).json(article);
   });
 
-  app.delete('/api/admin/articles/:id', authMiddleware, (req: any, res: any) => {
-    const existing = db.prepare('SELECT id FROM articles WHERE id = ?').get(req.params.id);
+  app.put('/api/admin/articles/:id', authMiddleware, async (req: any, res: any) => {
+    const { title, content, excerpt, categoryId, tags, status } = req.body;
+    const existingResult = await sql`SELECT * FROM articles WHERE id = ${req.params.id}`;
+    const existing = existingResult[0];
     if (!existing) return res.status(404).json({ error: 'Article not found' });
-    db.prepare('DELETE FROM articles WHERE id = ?').run(req.params.id);
+    await sql`
+      UPDATE articles SET title = ${title || existing.title}, content = ${content || existing.content},
+      excerpt = ${excerpt ?? existing.excerpt}, category_id = ${categoryId ?? existing.category_id},
+      status = ${status || existing.status}, updated_at = CURRENT_TIMESTAMP WHERE id = ${req.params.id}
+    `;
+    if (tags !== undefined) {
+      await sql`DELETE FROM article_tags WHERE article_id = ${req.params.id}`;
+      if (tags?.length) {
+        for (const tagId of tags) {
+          await sql`INSERT INTO article_tags (article_id, tag_id) VALUES (${req.params.id}, ${tagId})`;
+        }
+      }
+    }
+    const articles = await sql`SELECT * FROM articles WHERE id = ${req.params.id}`;
+    res.json(articles[0]);
+  });
+
+  app.delete('/api/admin/articles/:id', authMiddleware, async (req: any, res: any) => {
+    const existing = await sql`SELECT id FROM articles WHERE id = ${req.params.id}`;
+    if (!existing[0]) return res.status(404).json({ error: 'Article not found' });
+    await sql`DELETE FROM articles WHERE id = ${req.params.id}`;
     res.json({ success: true });
   });
 
-  app.get('/api/admin/categories', authMiddleware, (_, res) => res.json(db.prepare('SELECT * FROM categories ORDER BY name').all()));
-  app.post('/api/admin/categories', authMiddleware, (req: any, res) => {
+  app.get('/api/admin/categories', authMiddleware, async (_, res) => {
+    const categories = await sql`SELECT * FROM categories ORDER BY name`;
+    res.json(categories);
+  });
+
+  app.post('/api/admin/categories', authMiddleware, async (req: any, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Name required' });
     const slug = name.toLowerCase().replace(/\s+/g, '-');
-    const result = db.prepare('INSERT INTO categories (name, slug) VALUES (?, ?)').run(name, slug);
-    res.status(201).json(db.prepare('SELECT * FROM categories WHERE id = ?').get(result.lastInsertRowid));
+    const result = await sql`INSERT INTO categories (name, slug) VALUES (${name}, ${slug}) RETURNING *`;
+    res.status(201).json(result[0]);
   });
-  app.put('/api/admin/categories/:id', authMiddleware, (req: any, res) => {
-    const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(req.params.id) as any;
+
+  app.put('/api/admin/categories/:id', authMiddleware, async (req: any, res) => {
+    const existingResult = await sql`SELECT * FROM categories WHERE id = ${req.params.id}`;
+    const existing = existingResult[0];
     if (!existing) return res.status(404).json({ error: 'Category not found' });
     const { name } = req.body;
     const slug = name ? name.toLowerCase().replace(/\s+/g, '-') : existing.slug;
-    db.prepare('UPDATE categories SET name = ?, slug = ? WHERE id = ?').run(name || existing.name, slug, req.params.id);
-    res.json(db.prepare('SELECT * FROM categories WHERE id = ?').get(req.params.id));
+    await sql`UPDATE categories SET name = ${name || existing.name}, slug = ${slug} WHERE id = ${req.params.id}`;
+    const categories = await sql`SELECT * FROM categories WHERE id = ${req.params.id}`;
+    res.json(categories[0]);
   });
-  app.delete('/api/admin/categories/:id', authMiddleware, (req: any, res) => {
-    const existing = db.prepare('SELECT id FROM categories WHERE id = ?').get(req.params.id);
-    if (!existing) return res.status(404).json({ error: 'Category not found' });
-    db.prepare('UPDATE articles SET category_id = NULL WHERE category_id = ?').run(req.params.id);
-    db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
+
+  app.delete('/api/admin/categories/:id', authMiddleware, async (req: any, res) => {
+    const existing = await sql`SELECT id FROM categories WHERE id = ${req.params.id}`;
+    if (!existing[0]) return res.status(404).json({ error: 'Category not found' });
+    await sql`UPDATE articles SET category_id = NULL WHERE category_id = ${req.params.id}`;
+    await sql`DELETE FROM categories WHERE id = ${req.params.id}`;
     res.json({ success: true });
   });
 
-  app.get('/api/admin/tags', authMiddleware, (_, res) => res.json(db.prepare('SELECT * FROM tags ORDER BY name').all()));
-  app.post('/api/admin/tags', authMiddleware, (req: any, res) => {
+  app.get('/api/admin/tags', authMiddleware, async (_, res) => {
+    const tags = await sql`SELECT * FROM tags ORDER BY name`;
+    res.json(tags);
+  });
+
+  app.post('/api/admin/tags', authMiddleware, async (req: any, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Name required' });
-    const existing = db.prepare('SELECT id FROM tags WHERE name = ?').get(name);
-    if (existing) return res.status(400).json({ error: 'Tag already exists' });
-    const result = db.prepare('INSERT INTO tags (name) VALUES (?)').run(name);
-    res.status(201).json(db.prepare('SELECT * FROM tags WHERE id = ?').get(result.lastInsertRowid));
+    const existing = await sql`SELECT id FROM tags WHERE name = ${name}`;
+    if (existing[0]) return res.status(400).json({ error: 'Tag already exists' });
+    const result = await sql`INSERT INTO tags (name) VALUES (${name}) RETURNING *`;
+    res.status(201).json(result[0]);
   });
-  app.put('/api/admin/tags/:id', authMiddleware, (req: any, res) => {
-    const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id) as any;
+
+  app.put('/api/admin/tags/:id', authMiddleware, async (req: any, res) => {
+    const existingResult = await sql`SELECT * FROM tags WHERE id = ${req.params.id}`;
+    const existing = existingResult[0];
     if (!existing) return res.status(404).json({ error: 'Tag not found' });
-    db.prepare('UPDATE tags SET name = ? WHERE id = ?').run(req.body.name || existing.name, req.params.id);
-    res.json(db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id));
+    await sql`UPDATE tags SET name = ${req.body.name || existing.name} WHERE id = ${req.params.id}`;
+    const tags = await sql`SELECT * FROM tags WHERE id = ${req.params.id}`;
+    res.json(tags[0]);
   });
-  app.delete('/api/admin/tags/:id', authMiddleware, (req: any, res) => {
-    const existing = db.prepare('SELECT id FROM tags WHERE id = ?').get(req.params.id);
-    if (!existing) return res.status(404).json({ error: 'Tag not found' });
-    db.prepare('DELETE FROM article_tags WHERE tag_id = ?').run(req.params.id);
-    db.prepare('DELETE FROM tags WHERE id = ?').run(req.params.id);
+
+  app.delete('/api/admin/tags/:id', authMiddleware, async (req: any, res) => {
+    const existing = await sql`SELECT id FROM tags WHERE id = ${req.params.id}`;
+    if (!existing[0]) return res.status(404).json({ error: 'Tag not found' });
+    await sql`DELETE FROM article_tags WHERE tag_id = ${req.params.id}`;
+    await sql`DELETE FROM tags WHERE id = ${req.params.id}`;
     res.json({ success: true });
   });
 
-  app.get('/api/admin/settings', authMiddleware, (_, res) => {
-    const rows = db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[];
+  app.get('/api/admin/settings', authMiddleware, async (_, res) => {
+    const rows = await sql`SELECT key, value FROM settings`;
     const settings: Record<string, any> = {};
-    rows.forEach(r => { try { settings[r.key] = JSON.parse(r.value); } catch { settings[r.key] = r.value; } });
+    (rows as { key: string; value: string }[]).forEach(r => { try { settings[r.key] = JSON.parse(r.value); } catch { settings[r.key] = r.value; } });
     res.json(settings);
   });
-  app.put('/api/admin/settings', authMiddleware, (req: any, res) => {
+
+  app.put('/api/admin/settings', authMiddleware, async (req: any, res) => {
     const updates = req.body;
-    const upsert = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-    Object.entries(updates).forEach(([k, v]) => upsert.run(k, typeof v === 'string' ? v : JSON.stringify(v)));
+    for (const [k, v] of Object.entries(updates)) {
+      const valueStr = typeof v === 'string' ? v : JSON.stringify(v);
+      await sql`INSERT INTO settings (key, value) VALUES (${k}, ${valueStr}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
+    }
     res.json({ success: true });
   });
 
   app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 
-  return { app, db };
+  return { app, sql };
 }
 
 describe('Blog API', () => {
   let app: express.Application;
-  let db: Database.Database;
+  let sql: postgres.Sql;
   let token: string;
   let categoryId: number;
   let tagId: number;
   let articleId: number;
 
-  beforeAll(() => {
-    const result = createTestApp();
+  beforeAll(async () => {
+    const result = await createTestApp();
     app = result.app;
-    db = result.db;
+    sql = result.sql;
 
     const hash = bcrypt.hashSync('password123', 10);
-    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('testuser', hash);
-    const user = db.prepare('SELECT id FROM users WHERE username = ?').get('testuser') as any;
+    await sql`INSERT INTO users (username, password_hash) VALUES (${'testuser'}, ${hash})`;
+    const users = await sql`SELECT id FROM users WHERE username = ${'testuser'}`;
+    const user = users[0];
     token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
 
-    const catResult = db.prepare('INSERT INTO categories (name, slug) VALUES (?, ?)').run('Tech', 'tech');
-    categoryId = catResult.lastInsertRowid as number;
-    const tagResult = db.prepare('INSERT INTO tags (name) VALUES (?)').run('JavaScript');
-    tagId = tagResult.lastInsertRowid as number;
-    const artResult = db.prepare('INSERT INTO articles (title, slug, content, excerpt, category_id, status) VALUES (?, ?, ?, ?, ?, ?)').run('Test Article', 'test-article', '# Hello\n\nContent here', 'Test excerpt', categoryId, 'published');
-    articleId = artResult.lastInsertRowid as number;
-    db.prepare('INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)').run(articleId, tagId);
+    const catResult = await sql`INSERT INTO categories (name, slug) VALUES (${'Tech'}, ${'tech'}) RETURNING *`;
+    categoryId = catResult[0].id;
+    const tagResult = await sql`INSERT INTO tags (name) VALUES (${'JavaScript'}) RETURNING *`;
+    tagId = tagResult[0].id;
+    const artResult = await sql`
+      INSERT INTO articles (title, slug, content, excerpt, category_id, status)
+      VALUES (${'Test Article'}, ${'test-article'}, ${'# Hello\n\nContent here'}, ${'Test excerpt'}, ${categoryId}, ${'published'})
+      RETURNING *
+    `;
+    articleId = artResult[0].id;
+    await sql`INSERT INTO article_tags (article_id, tag_id) VALUES (${articleId}, ${tagId})`;
   });
 
-  afterAll(() => {
-    db.close();
-    const dbPath = path.join(__dirname, '../data/test.db');
-    if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
+  afterAll(async () => {
+    await sql.end();
   });
 
   describe('Health', () => {
