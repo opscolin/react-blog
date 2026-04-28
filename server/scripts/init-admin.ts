@@ -10,13 +10,15 @@ if (!connectionString) {
   process.exit(1);
 }
 
-const sql = postgres(connectionString, { ssl: 'require' });
+const sql = postgres(connectionString, { ssl: false });
 
 const schemaPath = path.join(__dirname, '../src/db/schema.pg.sql');
-if (fs.existsSync(schemaPath)) {
-  const schema = fs.readFileSync(schemaPath, 'utf-8');
-  await sql.unsafe(schema);
-}
+(async () => {
+  if (fs.existsSync(schemaPath)) {
+    const schema = fs.readFileSync(schemaPath, 'utf-8');
+    await sql.unsafe(schema);
+  }
+})();
 
 const rl = readline.createInterface({
   input: process.stdin,

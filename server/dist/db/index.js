@@ -38,26 +38,66 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sql = void 0;
 exports.initDatabase = initDatabase;
+exports.closeDatabase = closeDatabase;
 const postgres_1 = __importDefault(require("postgres"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const isVercel = process.env.VERCEL === '1';
-const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-if (!connectionString) {
-    throw new Error('DATABASE_URL or POSTGRES_URL environment variable is required');
-}
-const sql = (0, postgres_1.default)(connectionString, {
-    ssl: isVercel ? 'require' : false,
-    max: isVercel ? 1 : 10,
-    transform: {
-        undefined: null
+let sqlInstance = null;
+function getConnectionString() {
+    const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+    if (!connectionString) {
+        throw new Error('DATABASE_URL or POSTGRES_URL environment variable is required');
     }
-});
-exports.sql = sql;
+    return connectionString;
+}
+function getSql() {
+    if (!sqlInstance) {
+        const isVercel = process.env.VERCEL === '1';
+        const connectionString = getConnectionString();
+        sqlInstance = (0, postgres_1.default)(connectionString, {
+            ssl: isVercel ? 'require' : false,
+            max: isVercel ? 1 : 10,
+            transform: {
+                undefined: null
+            }
+        });
+    }
+    return sqlInstance;
+}
+function createSqlTemplateTag() {
+    const handler = {
+        get(_target, prop) {
+            const instance = getSql();
+            if (prop === 'unsafe') {
+                return (query, params) => instance.unsafe(query, params);
+            }
+            const value = instance[prop];
+            if (typeof value === 'function') {
+                return value.bind(instance);
+            }
+            return value;
+        },
+        apply(_target, _thisArg, args) {
+            if (args.length === 1 && Array.isArray(args[0])) {
+                return getSql()(args[0]);
+            }
+            return getSql()(...args);
+        }
+    };
+    return new Proxy(function () { }, handler);
+}
+exports.sql = createSqlTemplateTag();
 async function initDatabase() {
+    const db = getSql();
     const schemaPath = path.join(__dirname, 'schema.pg.sql');
     const schema = fs.readFileSync(schemaPath, 'utf-8');
-    await sql.unsafe(schema);
+    await db.unsafe(schema);
     console.log('Database initialized');
+}
+async function closeDatabase() {
+    if (sqlInstance) {
+        await sqlInstance.end();
+        sqlInstance = null;
+    }
 }
 //# sourceMappingURL=index.js.map

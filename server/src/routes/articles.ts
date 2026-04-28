@@ -42,13 +42,13 @@ router.get('/', async (req, res) => {
   }
 
   const countQuery = query.replace('SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug', 'SELECT COUNT(DISTINCT a.id) as count');
-  const countResult = await sql`${sql.unsafe(countQuery, ...params)}`;
+  const countResult = await sql.unsafe(countQuery, params);
   const total = countResult[0]?.count || 0;
 
   query += ` ORDER BY a.created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
   params.push(limit, offset);
 
-  const articles = await sql`${sql.unsafe(query, ...params)}`;
+  const articles = await sql.unsafe(query, params);
 
   const articlesWithTags = await Promise.all(articles.map(async (article: any) => {
     const tags = await sql`
