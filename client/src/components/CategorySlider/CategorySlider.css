@@ -1,0 +1,121 @@
+.category-slider {
+  margin-bottom: 2rem;
+}
+
+.category-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.category-slider-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.category-slider-more {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+.category-slider-more:hover {
+  color: var(--accent);
+}
+
+.category-slider-wrapper {
+  position: relative;
+}
+
+.category-slider-list {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 0.5rem 0;
+}
+
+.category-slider-list::-webkit-scrollbar {
+  display: none;
+}
+
+.category-slider-list {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-slider-card {
+  flex-shrink: 0;
+  width: 120px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--card-bg);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.category-slider-card:hover {
+  background: var(--accent);
+  color: var(--site-bg);
+}
+
+.category-slider-card-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+  text-align: center;
+}
+
+.category-slider-card-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.category-slider-card:hover .category-slider-card-name,
+.category-slider-card:hover .category-slider-card-count {
+  color: var(--site-bg);
+}
+
+.category-slider-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  font-size: 1.25rem;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.category-slider-btn:hover {
+  background: var(--accent);
+  color: var(--site-bg);
+  border-color: var(--accent);
+}
+
+.category-slider-btn-left {
+  left: -16px;
+}
+
+.category-slider-btn-right {
+  right: -16px;
+}
+
+.category-slider-btn.hidden {
+  display: none;
+}
