@@ -51,9 +51,10 @@
   padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;
+  text-decoration: none;
 }
 
-.nav-link:hover, .nav-link.active,
+.nav-link:hover,
 .dropdown-trigger:hover {
   color: var(--text-main);
   background: var(--hover-bg);
@@ -61,6 +62,8 @@
 
 .nav-dropdown {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .nav-dropdown-content {
