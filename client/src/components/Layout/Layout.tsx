@@ -58,10 +58,6 @@ export default function Layout() {
     }
   };
 
-  const toggleDropdown = (key: string) => {
-    setOpenDropdown(prev => prev === key ? null : key);
-  };
-
   const handleMouseEnter = (key: string) => {
     setOpenDropdown(key);
   };
