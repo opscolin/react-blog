@@ -158,7 +158,7 @@ export default function Layout() {
       <main className="main">
         <div className="container">
           <NotificationBar quote={quote} />
-          <BannerCarousel banners={banners} />
+          {settings?.enable_banner_carousel !== false && <BannerCarousel banners={banners} />}
           <CategorySlider categories={categories} />
           <Outlet />
         </div>

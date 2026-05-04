@@ -11,7 +11,7 @@ router.get('/', async (_: AuthRequest, res: Response) => {
 });
 
 router.post('/', async (req: AuthRequest, res: Response) => {
-  const { name } = req.body;
+  const { name, cover, is_banner } = req.body;
 
   if (!name) {
     res.status(400).json({ error: 'Name required' });
@@ -26,15 +26,15 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   }
 
   const insertResult = await sql`
-    INSERT INTO categories (name, slug)
-    VALUES (${name}, ${slug})
+    INSERT INTO categories (name, slug, cover, is_banner)
+    VALUES (${name}, ${slug}, ${cover || null}, ${is_banner || false})
     RETURNING *
   `;
   res.status(201).json(insertResult[0]);
 });
 
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const { name } = req.body;
+  const { name, cover, is_banner } = req.body;
   const { id } = req.params;
 
   const existingResult = await sql`SELECT * FROM categories WHERE id = ${id}`;
@@ -45,10 +45,9 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
   }
 
   const slug = name ? generateSlug(name) : existing.slug;
-  const finalSlug = slug;
 
   await sql`
-    UPDATE categories SET name = ${name || existing.name}, slug = ${finalSlug}
+    UPDATE categories SET name = ${name || existing.name}, slug = ${slug}, cover = ${cover !== undefined ? cover : existing.cover}, is_banner = ${is_banner !== undefined ? is_banner : existing.is_banner}
     WHERE id = ${id}
   `;
   const updatedResult = await sql`SELECT * FROM categories WHERE id = ${id}`;

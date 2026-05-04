@@ -9,6 +9,8 @@ export interface Category {
   slug: string;
   article_count?: number;
   created_at?: string;
+  cover?: string;
+  is_banner?: boolean;
 }
 
 export interface Tag {
@@ -94,4 +96,5 @@ export interface Settings {
   };
   navigation_menus?: NavigationMenu;
   enable_quote_cache?: boolean;
+  enable_banner_carousel?: boolean;
 }

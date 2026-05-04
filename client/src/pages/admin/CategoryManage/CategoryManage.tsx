@@ -6,6 +6,8 @@ import './CategoryManage.css';
 export default function CategoryManage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState('');
+  const [cover, setCover] = useState('');
+  const [isBanner, setIsBanner] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -32,14 +34,13 @@ export default function CategoryManage() {
 
     try {
       if (editingId) {
-        await api.put(`/admin/categories/${editingId}`, { name });
+        await api.put(`/admin/categories/${editingId}`, { name, cover: cover || null, is_banner: isBanner });
         showToast('分类已更新', 'success');
       } else {
-        await api.post('/admin/categories', { name });
+        await api.post('/admin/categories', { name, cover: cover || null, is_banner: isBanner });
         showToast('分类已添加', 'success');
       }
-      setName('');
-      setEditingId(null);
+      resetForm();
       loadCategories();
     } catch {
       showToast('操作失败', 'error');
@@ -48,6 +49,8 @@ export default function CategoryManage() {
 
   const handleEdit = (cat: Category) => {
     setName(cat.name);
+    setCover(cat.cover || '');
+    setIsBanner(cat.is_banner || false);
     setEditingId(cat.id);
   };
 
@@ -59,6 +62,13 @@ export default function CategoryManage() {
     } catch {
       showToast('删除失败', 'error');
     }
+  };
+
+  const resetForm = () => {
+    setName('');
+    setCover('');
+    setIsBanner(false);
+    setEditingId(null);
   };
 
   if (loading) {
@@ -74,26 +84,43 @@ export default function CategoryManage() {
       )}
       <h1>分类管理</h1>
       <form onSubmit={handleSubmit} className="category-form">
-        <input
-          type="text"
-          className="input"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="分类名称"
-        />
-        <button type="submit" className="btn btn-primary">
-          {editingId ? '更新' : '添加'}
-        </button>
-        {editingId && (
-          <button type="button" onClick={() => { setName(''); setEditingId(null); }} className="btn btn-secondary">
-            取消
+        <div className="form-row">
+          <input
+            type="text"
+            className="input"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="分类名称"
+          />
+          <input
+            type="text"
+            className="input"
+            value={cover}
+            onChange={e => setCover(e.target.value)}
+            placeholder="封面 URL"
+          />
+          <label className="toggle-item">
+            <input
+              type="checkbox"
+              checked={isBanner}
+              onChange={e => setIsBanner(e.target.checked)}
+            />
+            <span>轮播封面</span>
+          </label>
+          <button type="submit" className="btn btn-primary">
+            {editingId ? '更新' : '添加'}
           </button>
-        )}
+          {editingId && (
+            <button type="button" onClick={resetForm} className="btn btn-secondary">取消</button>
+          )}
+        </div>
       </form>
       <table className="category-table">
         <thead>
           <tr>
             <th>名称</th>
+            <th>封面</th>
+            <th>轮播</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -101,6 +128,14 @@ export default function CategoryManage() {
           {categories.map(cat => (
             <tr key={cat.id}>
               <td>{cat.name}</td>
+              <td>
+                {cat.cover ? (
+                  <img src={cat.cover} alt="" className="category-cover-thumb" />
+                ) : (
+                  <span className="text-muted">-</span>
+                )}
+              </td>
+              <td>{cat.is_banner ? '✓' : '-'}</td>
               <td>
                 <button onClick={() => handleEdit(cat)} className="action-link">编辑</button>
                 <button onClick={() => handleDelete(cat.id)} className="action-link danger">删除</button>
