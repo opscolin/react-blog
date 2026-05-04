@@ -19,7 +19,10 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     return;
   }
 
-  const slug = slugify(name, { lower: true, strict: true });
+  let slug = slugify(name, { lower: true, strict: true });
+  if (!slug) {
+    slug = `${name.charAt(0)}-${Date.now()}`;
+  }
   const existingResult = await sql`SELECT id FROM categories WHERE slug = ${slug}`;
   if (existingResult.length > 0) {
     res.status(400).json({ error: 'Category with this name already exists' });
@@ -46,9 +49,10 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
   }
 
   const slug = name ? slugify(name, { lower: true, strict: true }) : existing.slug;
+  const finalSlug = slug || existing.slug;
 
   await sql`
-    UPDATE categories SET name = ${name || existing.name}, slug = ${slug}
+    UPDATE categories SET name = ${name || existing.name}, slug = ${finalSlug}
     WHERE id = ${id}
   `;
   const updatedResult = await sql`SELECT * FROM categories WHERE id = ${id}`;
