@@ -39,10 +39,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sql = void 0;
 exports.initDatabase = initDatabase;
 exports.closeDatabase = closeDatabase;
+exports.getRedis = getRedis;
 const postgres_1 = __importDefault(require("postgres"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const redis_1 = require("redis");
 let sqlInstance = null;
+let redisClient = null;
 function getConnectionString() {
     const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
     if (!connectionString) {
@@ -99,5 +102,19 @@ async function closeDatabase() {
         await sqlInstance.end();
         sqlInstance = null;
     }
+}
+async function getRedis() {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+        return null;
+    }
+    if (!redisClient) {
+        redisClient = (0, redis_1.createClient)({ url: redisUrl });
+        redisClient.on('error', (err) => console.error('Redis Client Error', err));
+    }
+    if (!redisClient.isOpen) {
+        await redisClient.connect();
+    }
+    return redisClient;
 }
 //# sourceMappingURL=index.js.map

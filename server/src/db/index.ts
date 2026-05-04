@@ -1,8 +1,10 @@
 import postgres from 'postgres';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createClient, RedisClientType } from 'redis';
 
 let sqlInstance: ReturnType<typeof postgres> | null = null;
+let redisClient: RedisClientType | null = null;
 
 function getConnectionString(): string {
   const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
@@ -65,4 +67,22 @@ export async function closeDatabase(): Promise<void> {
     await sqlInstance.end();
     sqlInstance = null;
   }
+}
+
+export async function getRedis(): Promise<RedisClientType | null> {
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    return null;
+  }
+
+  if (!redisClient) {
+    redisClient = createClient({ url: redisUrl });
+    redisClient.on('error', (err) => console.error('Redis Client Error', err));
+  }
+
+  if (!redisClient.isOpen) {
+    await redisClient.connect();
+  }
+
+  return redisClient;
 }

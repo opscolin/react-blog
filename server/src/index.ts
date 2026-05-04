@@ -11,6 +11,7 @@ import adminArticleRoutes from './routes/admin/articles';
 import adminCategoryRoutes from './routes/admin/categories';
 import adminTagRoutes from './routes/admin/tags';
 import adminSettingsRoutes from './routes/admin/settings';
+import quotesRoutes from './routes/quotes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +33,7 @@ app.use('/api/admin/articles', adminArticleRoutes);
 app.use('/api/admin/categories', adminCategoryRoutes);
 app.use('/api/admin/tags', adminTagRoutes);
 app.use('/api/admin/settings', adminSettingsRoutes);
+app.use('/api/quotes', quotesRoutes);
 
 app.get('/api/health', (_, res) => {
   res.json({ status: 'ok' });
