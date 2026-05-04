@@ -1,17 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Outlet, Link, useLocation, useSearchParams } from 'react-router-dom';
 import api from '../../api';
-import type { Settings } from '../../types';
+import type { Settings, Category } from '../../types';
 import ThemeToggle from '../ThemeToggle/ThemeToggle';
+import NotificationBar from '../NotificationBar/NotificationBar';
+import BannerCarousel from '../BannerCarousel/BannerCarousel';
+import CategorySlider from '../CategorySlider/CategorySlider';
 import './Layout.css';
 
 export default function Layout() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     api.get('/settings').then(res => {
@@ -25,6 +30,9 @@ export default function Layout() {
           favicon.href = res.data.blogLogo;
         }
       }
+    });
+    api.get('/categories').then(res => {
+      setCategories(res.data);
     });
   }, []);
 
@@ -50,6 +58,71 @@ export default function Layout() {
     }
   };
 
+  const toggleDropdown = (key: string) => {
+    setOpenDropdown(prev => prev === key ? null : key);
+  };
+
+  const handleMouseEnter = (key: string) => {
+    setOpenDropdown(key);
+  };
+
+  const handleMouseLeave = () => {
+    setOpenDropdown(null);
+  };
+
+  const renderNavItems = () => {
+    const menus = settings?.navigation_menus;
+    if (!menus) return null;
+
+    return Object.entries(menus).map(([key, menu]) => {
+      if (!menu.visible) return null;
+
+      if (menu.children && menu.children.length > 0) {
+        return (
+          <div
+            key={key}
+            className="nav-dropdown"
+            onMouseEnter={() => handleMouseEnter(key)}
+            onMouseLeave={handleMouseLeave}
+          >
+            <span className={`nav-link dropdown-trigger ${isActive(menu.path || '/') ? 'active' : ''}`}>
+              {key}
+              <svg className="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </span>
+            {openDropdown === key && (
+              <div className="nav-dropdown-content">
+                {menu.children.map((child, index) => (
+                  <Link
+                    key={index}
+                    to={child.path}
+                    className="nav-dropdown-item"
+                  >
+                    {child.cover && (
+                      <img src={child.cover} alt="" className="dropdown-cover" />
+                    )}
+                    <span>{child.name}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      return (
+        <Link
+          key={key}
+          to={menu.path || '/'}
+          className={`nav-link ${isActive(menu.path || '/') ? 'active' : ''}`}
+        >
+          {key}
+        </Link>
+      );
+    });
+  };
+
   return (
     <div className="layout">
       <header className="header">
@@ -61,29 +134,7 @@ export default function Layout() {
             <span className="logo-text">{settings?.blogTitle || 'Blog'}</span>
           </Link>
           <nav className={`nav ${mobileMenuOpen ? 'open' : ''}`}>
-            <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
-              最近
-            </Link>
-            {settings?.menuVisibility?.categories && (
-              <Link to="/category" className={`nav-link ${isActive('/category') ? 'active' : ''}`}>
-                分类
-              </Link>
-            )}
-            {settings?.menuVisibility?.tags && (
-              <Link to="/tag" className={`nav-link ${isActive('/tag') ? 'active' : ''}`}>
-                标签
-              </Link>
-            )}
-            {settings?.menuVisibility?.archives && (
-              <Link to="/archive" className={`nav-link ${isActive('/archive') ? 'active' : ''}`}>
-                归档
-              </Link>
-            )}
-            {settings?.menuVisibility?.about && (
-              <Link to="/about" className={`nav-link ${isActive('/about') ? 'active' : ''}`}>
-                关于
-              </Link>
-            )}
+            {renderNavItems()}
           </nav>
           <div className="header-actions">
             <div className={`search-container ${searchOpen ? 'open' : ''}`}>
@@ -115,6 +166,9 @@ export default function Layout() {
       </header>
       <main className="main">
         <div className="container">
+          <NotificationBar />
+          <BannerCarousel />
+          <CategorySlider categories={categories} />
           <Outlet />
         </div>
       </main>

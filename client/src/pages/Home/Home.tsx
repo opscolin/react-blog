@@ -1,30 +1,70 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../api';
 import type { Article, Pagination as PaginationType } from '../../types';
 import ArticleCard from '../../components/ArticleCard/ArticleCard';
-import Pagination from '../../components/Pagination/Pagination';
 import './Home.css';
 
 export default function Home() {
   const [searchParams] = useSearchParams();
-  const page = parseInt(searchParams.get('page') || '1');
+  const initialPage = parseInt(searchParams.get('page') || '1');
   const search = searchParams.get('search') || undefined;
   const [articles, setArticles] = useState<Article[]>([]);
+  const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const loadArticles = useCallback((pageNum: number, searchTerm?: string, reset = false) => {
+    if (loading) return;
     setLoading(true);
-    api.get('/articles', { params: { page, limit: 10, search } })
+    api.get('/articles', { params: { page: pageNum, limit: 10, search: searchTerm } })
       .then(res => {
-        setArticles(res.data.articles);
+        const newArticles = res.data.articles as Article[];
+        if (reset) {
+          setArticles(newArticles);
+        } else {
+          setArticles(prev => [...prev, ...newArticles]);
+        }
         setPagination(res.data.pagination);
+        setHasMore(newArticles.length > 0 && pageNum < (res.data.pagination?.totalPages ?? 1));
       })
       .finally(() => setLoading(false));
-  }, [page, search]);
+  }, [loading]);
 
-  if (loading) {
+  useEffect(() => {
+    setPage(1);
+    setArticles([]);
+    setHasMore(true);
+    loadArticles(1, search, true);
+  }, [search]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loading && hasMore) {
+          const nextPage = page + 1;
+          setPage(nextPage);
+          loadArticles(nextPage, search);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [loading, hasMore, page, search, loadArticles]);
+
+  if (loading && articles.length === 0) {
     return <div className="loading">加载中...</div>;
   }
 
@@ -40,9 +80,10 @@ export default function Home() {
           <p className="empty">暂无文章</p>
         )}
       </div>
-      {pagination && (
-        <Pagination page={page} totalPages={pagination.totalPages} />
-      )}
+      <div ref={loadMoreRef} className="load-more">
+        {loading && articles.length > 0 && <span className="loading-text">加载中...</span>}
+        {!hasMore && articles.length > 0 && <span className="no-more">没有更多文章了</span>}
+      </div>
     </div>
   );
 }

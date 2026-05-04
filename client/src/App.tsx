@@ -8,6 +8,7 @@ import Tag from './pages/Tag/Tag';
 import TagList from './pages/Tag/TagList';
 import Archive from './pages/Archive/Archive';
 import About from './pages/About/About';
+import Product from './pages/Product/Product';
 import AdminLogin from './pages/admin/Login/Login';
 import AdminDashboard from './pages/admin/Dashboard/Dashboard';
 import ArticleEdit from './pages/admin/ArticleEdit/ArticleEdit';
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="archive" element={<Archive />} />
         <Route path="archive/:year/:month" element={<Archive />} />
         <Route path="about" element={<About />} />
+        <Route path="products/:productId" element={<Product />} />
       </Route>
       <Route path="/admin" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<AdminDashboard />}>
