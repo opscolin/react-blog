@@ -9,24 +9,24 @@ interface CategorySliderProps {
 export default function CategorySlider({ categories }: CategorySliderProps) {
   return (
     <div className="category-slider">
-      <div className="category-slider-list">
-        {categories.map((category) => (
-          <Link
-            key={category.id}
-            to={`/category/${category.slug}`}
-            className="category-slider-card"
-          >
-            <span className="category-slider-card-name">
-              {category.name}
-              <span className="category-slider-card-count">
-                ({category.article_count ?? 0})
+      <div className="category-slider-wrapper">
+        <div className="category-slider-list">
+          {categories.map((category) => (
+            <Link
+              key={category.id}
+              to={`/category/${category.slug}`}
+              className="category-slider-card"
+            >
+              <span className="category-slider-card-name">
+                {category.name}
+                <span className="category-slider-card-count">
+                  ({category.article_count ?? 0})
+                </span>
               </span>
-            </span>
-          </Link>
-        ))}
-        <Link to="/category" className="category-slider-card category-slider-more">
-          <span className="category-slider-card-name">更多</span>
-        </Link>
+            </Link>
+          ))}
+        </div>
+        <Link to="/category" className="category-slider-more">更多 ›</Link>
       </div>
     </div>
   );
