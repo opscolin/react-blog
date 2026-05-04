@@ -5,14 +5,8 @@
 .category-slider-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-bottom: 1rem;
-}
-
-.category-slider-header h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-main);
 }
 
 .category-slider-more {
@@ -48,39 +42,36 @@
 
 .category-slider-card {
   flex-shrink: 0;
-  width: 120px;
-  height: 80px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
+  padding: 0.5rem 1rem;
   background: var(--card-bg);
-  border-radius: 8px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
   text-decoration: none;
   transition: all 0.2s;
 }
 
 .category-slider-card:hover {
-  background: var(--accent);
-  color: var(--site-bg);
+  background: var(--hover-bg);
+  border-color: var(--accent);
 }
 
 .category-slider-card-name {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 500;
   color: var(--text-main);
-  text-align: center;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .category-slider-card-count {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
-}
-
-.category-slider-card:hover .category-slider-card-name,
-.category-slider-card:hover .category-slider-card-count {
-  color: var(--site-bg);
+  white-space: nowrap;
 }
 
 .category-slider-btn {
@@ -103,9 +94,9 @@
 }
 
 .category-slider-btn:hover {
-  background: var(--accent);
-  color: var(--site-bg);
+  background: var(--hover-bg);
   border-color: var(--accent);
+  color: var(--accent);
 }
 
 .category-slider-btn-left {

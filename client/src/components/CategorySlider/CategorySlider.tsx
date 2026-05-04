@@ -38,9 +38,11 @@ export default function CategorySlider({ categories }: CategorySliderProps) {
               to={`/categories/${category.slug}`}
               className="category-slider-card"
             >
-              <span className="category-slider-card-name">{category.name}</span>
-              <span className="category-slider-card-count">
-                {category.article_count ?? 0} 篇
+              <span className="category-slider-card-name">
+                {category.name}
+                <span className="category-slider-card-count">
+                  ({category.article_count ?? 0})
+                </span>
               </span>
             </Link>
           ))}
