@@ -16,9 +16,8 @@ export default function Home() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const loadArticles = useCallback((pageNum: number, searchTerm?: string, reset = false) => {
-    if (loading) return;
     setLoading(true);
-    api.get('/articles', { params: { page: pageNum, limit: 10, search: searchTerm } })
+    api.get('/articles', { params: { page: pageNum, limit: 15, search: searchTerm } })
       .then(res => {
         const newArticles = res.data.articles as Article[];
         if (reset) {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, Link, useLocation, useSearchParams } from 'react-router-dom';
 import api from '../../api';
 import type { Settings, Category, Quote, BannerCategory } from '../../types';
@@ -18,8 +18,11 @@ export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const fetched = useRef(false);
 
   useEffect(() => {
+    if (fetched.current) return;
+    fetched.current = true;
     api.get('/settings').then(res => {
       setSettings(res.data);
       if (res.data.blogTitle) {
