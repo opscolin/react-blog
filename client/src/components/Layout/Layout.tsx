@@ -18,7 +18,6 @@ export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     api.get('/settings').then(res => {
@@ -66,14 +65,6 @@ export default function Layout() {
     }
   };
 
-  const handleMouseEnter = (key: string) => {
-    setOpenDropdown(key);
-  };
-
-  const handleMouseLeave = () => {
-    setOpenDropdown(null);
-  };
-
   const renderNavItems = () => {
     const menus = settings?.navigation_menus;
     if (!menus) return null;
@@ -86,31 +77,24 @@ export default function Layout() {
           <div
             key={key}
             className="nav-dropdown"
-            onMouseEnter={() => handleMouseEnter(key)}
-            onMouseLeave={handleMouseLeave}
           >
-            <span className={`nav-link dropdown-trigger ${isActive(menu.path || '/') ? 'active' : ''}`}>
+            <span className="nav-link dropdown-trigger">
               {key}
-              <svg className="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
             </span>
-            {openDropdown === key && (
-              <div className="nav-dropdown-content">
-                {menu.children.map((child, index) => (
-                  <Link
-                    key={index}
-                    to={child.path}
-                    className="nav-dropdown-item"
-                  >
-                    {child.cover && (
-                      <img src={child.cover} alt="" className="dropdown-cover" />
-                    )}
-                    <span>{child.name}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
+            <div className="nav-dropdown-content">
+              {menu.children.map((child, index) => (
+                <Link
+                  key={index}
+                  to={child.path}
+                  className="nav-dropdown-item"
+                >
+                  {child.cover && (
+                    <img src={child.cover} alt="" className="dropdown-cover" />
+                  )}
+                  <span>{child.name}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         );
       }

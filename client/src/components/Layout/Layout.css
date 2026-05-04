@@ -44,6 +44,66 @@
   flex: 1;
 }
 
+.nav-link, .dropdown-trigger {
+  color: var(--text-muted);
+  font-size: 1rem;
+  transition: color 0.2s, background 0.2s;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.nav-link:hover, .nav-link.active,
+.dropdown-trigger:hover {
+  color: var(--text-main);
+  background: var(--hover-bg);
+}
+
+.nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown-content {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 120px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.nav-dropdown:hover .nav-dropdown-content {
+  display: block;
+}
+
+.nav-dropdown:hover .dropdown-trigger {
+  color: var(--text-main);
+  background: var(--hover-bg);
+}
+
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.nav-dropdown-item:hover {
+  background: var(--hover-bg);
+  color: var(--text-main);
+}
+
 .nav-link {
   color: var(--text-muted);
   font-size: 1rem;
