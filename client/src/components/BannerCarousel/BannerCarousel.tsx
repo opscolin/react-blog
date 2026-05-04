@@ -28,7 +28,7 @@ const BannerCarousel = ({ banners }: BannerCarouselProps) => {
   const handleBannerClick = () => {
     const banner = banners[currentIndex];
     if (banner?.slug) {
-      navigate(`/categories/${banner.slug}`);
+      navigate(`/category/${banner.slug}`);
     }
   };
 

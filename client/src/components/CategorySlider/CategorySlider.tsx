@@ -21,7 +21,7 @@ export default function CategorySlider({ categories }: CategorySliderProps) {
   return (
     <div className="category-slider">
       <div className="category-slider-header">
-        <Link to="/categories" className="category-slider-more">更多 ›</Link>
+        <Link to="/category" className="category-slider-more">更多 ›</Link>
       </div>
       <div className="category-slider-wrapper">
         <button
@@ -35,7 +35,7 @@ export default function CategorySlider({ categories }: CategorySliderProps) {
           {categories.map((category) => (
             <Link
               key={category.id}
-              to={`/categories/${category.slug}`}
+              to={`/category/${category.slug}`}
               className="category-slider-card"
             >
               <span className="category-slider-card-name">
