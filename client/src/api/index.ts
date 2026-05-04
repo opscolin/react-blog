@@ -36,4 +36,7 @@ api.interceptors.response.use(
   }
 );
 
+export const getQuote = () => api.get('/quotes/random');
+export const getBannerCategories = () => api.get('/categories/banner');
+
 export default api;
