@@ -69,7 +69,7 @@
 .nav-dropdown-content {
   display: none;
   position: absolute;
-  top: 100%;
+  top: calc(100% + 14px);
   left: 50%;
   transform: translateX(-50%);
   min-width: 120px;
@@ -77,8 +77,6 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.5rem 0;
-  padding-top: 8px;
-  margin-top: -4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 1000;
 }
@@ -118,7 +116,7 @@
   border-radius: 6px;
 }
 
-.nav-link:hover, .nav-link.active {
+.nav-link:hover {
   color: var(--text-main);
   background: var(--hover-bg);
 }
