@@ -40,20 +40,6 @@
 .nav {
   display: flex;
   justify-content: center;
-  gap: 2.5rem;
-  flex: 1;
-}
-
-.nav-link {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  transition: color 0.2s;
-  position: relative;
-}
-
-.nav {
-  display: flex;
-  justify-content: center;
   gap: 3rem;
   flex: 1;
 }
@@ -61,12 +47,14 @@
 .nav-link {
   color: var(--text-muted);
   font-size: 1rem;
-  transition: color 0.2s;
-  padding: 0.5rem 0;
+  transition: color 0.2s, background 0.2s;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
 }
 
 .nav-link:hover, .nav-link.active {
   color: var(--text-main);
+  background: var(--hover-bg);
 }
 
 .nav-dropdown {
@@ -77,12 +65,14 @@
   cursor: pointer;
   color: var(--text-muted);
   font-size: 1rem;
-  transition: color 0.2s;
-  padding: 0.5rem 0;
+  transition: color 0.2s, background 0.2s;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
 }
 
 .dropdown-trigger:hover {
   color: var(--text-main);
+  background: var(--hover-bg);
 }
 
 .dropdown-arrow {
@@ -94,7 +84,7 @@
   top: calc(100% + 4px);
   left: 50%;
   transform: translateX(-50%);
-  min-width: 100px;
+  min-width: 120px;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -106,8 +96,9 @@
 .nav-dropdown-item {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 1.5rem;
+  padding: 0.5rem 1rem;
   color: var(--text-muted);
   font-size: 0.9rem;
   transition: all 0.2s;
