@@ -49,6 +49,38 @@ export interface Archive {
   };
 }
 
+export interface Quote {
+  id: number;
+  content: string;
+  created_at?: string;
+}
+
+export interface BannerCategory {
+  id: number;
+  name: string;
+  slug: string;
+  cover: string;
+  is_banner?: boolean;
+  article: {
+    id: number;
+    title: string;
+    slug: string;
+    excerpt: string | null;
+  } | null;
+}
+
+export interface NavigationMenu {
+  [key: string]: {
+    path: string | null;
+    visible: boolean;
+    children?: Array<{
+      name: string;
+      path: string;
+      cover?: string;
+    }>;
+  };
+}
+
 export interface Settings {
   blogTitle: string;
   blogLogo: string;
@@ -60,4 +92,6 @@ export interface Settings {
     archives: boolean;
     about: boolean;
   };
+  navigation_menus?: NavigationMenu;
+  enable_quote_cache?: boolean;
 }
