@@ -1,7 +1,6 @@
 import { Router, Response } from 'express';
-import { sql } from '../../db';
+import { sql, generateSlug } from '../../db';
 import { authMiddleware, AuthRequest } from '../../middleware/auth';
-import slugify from 'slugify';
 
 const router = Router();
 router.use(authMiddleware);
@@ -19,10 +18,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     return;
   }
 
-  let slug = slugify(name, { lower: true, strict: true });
-  if (!slug) {
-    slug = `${name.charAt(0)}-${Date.now()}`;
-  }
+  let slug = generateSlug(name);
   const existingResult = await sql`SELECT id FROM categories WHERE slug = ${slug}`;
   if (existingResult.length > 0) {
     res.status(400).json({ error: 'Category with this name already exists' });
@@ -48,8 +44,8 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
     return;
   }
 
-  const slug = name ? slugify(name, { lower: true, strict: true }) : existing.slug;
-  const finalSlug = slug || existing.slug;
+  const slug = name ? generateSlug(name) : existing.slug;
+  const finalSlug = slug;
 
   await sql`
     UPDATE categories SET name = ${name || existing.name}, slug = ${finalSlug}

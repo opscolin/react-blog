@@ -2,9 +2,16 @@ import postgres from 'postgres';
 import * as fs from 'fs';
 import * as path from 'path';
 import { createClient, RedisClientType } from 'redis';
+import slugify from 'slugify';
 
 let sqlInstance: ReturnType<typeof postgres> | null = null;
 let redisClient: RedisClientType | null = null;
+
+export function generateSlug(name: string): string {
+  const asciiSlug = slugify(name, { lower: true, strict: true });
+  if (asciiSlug) return asciiSlug;
+  return Buffer.from(name).toString('base64url');
+}
 
 function getConnectionString(): string {
   const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
