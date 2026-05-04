@@ -1,17 +1,11 @@
-import { useEffect, useState } from 'react';
-import { getQuote } from '../../api';
 import { Quote } from '../../types';
 import './NotificationBar.css';
 
-export default function NotificationBar() {
-  const [quote, setQuote] = useState<Quote | null>(null);
+interface NotificationBarProps {
+  quote: Quote | null;
+}
 
-  useEffect(() => {
-    getQuote()
-      .then(res => setQuote(res.data))
-      .catch(() => setQuote(null));
-  }, []);
-
+export default function NotificationBar({ quote }: NotificationBarProps) {
   if (!quote) return null;
 
   return (

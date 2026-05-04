@@ -1,19 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getBannerCategories } from '../../api';
 import { BannerCategory } from '../../types';
 import './BannerCarousel.css';
 
-const BannerCarousel = () => {
-  const [banners, setBanners] = useState<BannerCategory[]>([]);
+interface BannerCarouselProps {
+  banners: BannerCategory[];
+}
+
+const BannerCarousel = ({ banners }: BannerCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    getBannerCategories().then(res => {
-      setBanners(res.data);
-    });
-  }, []);
 
   const goToNext = useCallback(() => {
     setCurrentIndex(prev => (prev + 1) % banners.length);

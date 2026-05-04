@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Outlet, Link, useLocation, useSearchParams } from 'react-router-dom';
 import api from '../../api';
-import type { Settings, Category } from '../../types';
+import type { Settings, Category, Quote, BannerCategory } from '../../types';
 import ThemeToggle from '../ThemeToggle/ThemeToggle';
 import NotificationBar from '../NotificationBar/NotificationBar';
 import BannerCarousel from '../BannerCarousel/BannerCarousel';
@@ -13,6 +13,8 @@ export default function Layout() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [banners, setBanners] = useState<BannerCategory[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
@@ -34,6 +36,12 @@ export default function Layout() {
     api.get('/categories').then(res => {
       setCategories(res.data);
     });
+    api.get('/quotes/random').then(res => {
+      setQuote(res.data);
+    }).catch(() => setQuote(null));
+    api.get('/categories/banner').then(res => {
+      setBanners(res.data.data || []);
+    }).catch(() => setBanners([]));
   }, []);
 
   const isActive = (path: string) => {
@@ -162,8 +170,8 @@ export default function Layout() {
       </header>
       <main className="main">
         <div className="container">
-          <NotificationBar />
-          <BannerCarousel />
+          <NotificationBar quote={quote} />
+          <BannerCarousel banners={banners} />
           <CategorySlider categories={categories} />
           <Outlet />
         </div>

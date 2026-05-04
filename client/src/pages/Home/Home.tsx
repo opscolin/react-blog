@@ -29,9 +29,10 @@ export default function Home() {
         setHasMore(newArticles.length > 0 && pageNum < (res.data.pagination?.totalPages ?? 1));
       })
       .finally(() => setLoading(false));
-  }, [loading]);
+  }, []);
 
   useEffect(() => {
+    setPage(1);
     setArticles([]);
     setHasMore(true);
     loadArticles(1, search, true);
@@ -59,7 +60,7 @@ export default function Home() {
         observer.unobserve(currentRef);
       }
     };
-  }, [loading, hasMore, page, search, loadArticles]);
+  }, [loading, hasMore, page, search]);
 
   if (loading && articles.length === 0) {
     return <div className="loading">加载中...</div>;

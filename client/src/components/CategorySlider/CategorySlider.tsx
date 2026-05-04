@@ -21,7 +21,6 @@ export default function CategorySlider({ categories }: CategorySliderProps) {
   return (
     <div className="category-slider">
       <div className="category-slider-header">
-        <h3>全部分类</h3>
         <Link to="/categories" className="category-slider-more">更多 ›</Link>
       </div>
       <div className="category-slider-wrapper">
