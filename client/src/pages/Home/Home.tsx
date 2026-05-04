@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../api';
-import type { Article, Pagination as PaginationType } from '../../types';
+import type { Article } from '../../types';
 import ArticleCard from '../../components/ArticleCard/ArticleCard';
 import './Home.css';
 
 export default function Home() {
   const [searchParams] = useSearchParams();
-  const initialPage = parseInt(searchParams.get('page') || '1');
   const search = searchParams.get('search') || undefined;
   const [articles, setArticles] = useState<Article[]>([]);
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<PaginationType | null>(null);
+  
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -27,14 +26,12 @@ export default function Home() {
         } else {
           setArticles(prev => [...prev, ...newArticles]);
         }
-        setPagination(res.data.pagination);
         setHasMore(newArticles.length > 0 && pageNum < (res.data.pagination?.totalPages ?? 1));
       })
       .finally(() => setLoading(false));
   }, [loading]);
 
   useEffect(() => {
-    setPage(1);
     setArticles([]);
     setHasMore(true);
     loadArticles(1, search, true);
