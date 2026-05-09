@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
@@ -16,10 +16,22 @@ marked.setOptions({
 marked.use({
   hooks: {
     postprocess(html) {
-      return html.replace(/<input type="checkbox"(.*?)>/g, (_, attrs) => {
-        const cleaned = attrs.replace(/\s*disabled\s*/g, '');
-        return `<input type="checkbox"${cleaned} class="task-list-item-checkbox">`;
-      });
+      html = html.replace(
+        /<input([^>]*?)type="checkbox"([^>]*?)>/g,
+        (_, before, after) => {
+          const attrs = (before + ' ' + after).replace(/\s*disabled(?:="")?\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+          return '<input type="checkbox" class="task-list-item-checkbox"' + (attrs ? ' ' + attrs : '') + '>';
+        }
+      );
+      html = html.replace(
+        /<li>\s*(<input[^>]*class="task-list-item-checkbox"[^>]*>)/g,
+        '<li class="task-list-item">$1'
+      );
+      html = html.replace(
+        /<(ul|ol)>\s*(<li class="task-list-item")/g,
+        '<$1 class="contains-task-list">$2'
+      );
+      return html;
     }
   },
   renderer: {
@@ -61,13 +73,17 @@ export default function ArticleDetail() {
     if (!container) return;
 
     const checkboxes = container.querySelectorAll<HTMLInputElement>('input.task-list-item-checkbox');
+    const cleanupFns: (() => void)[] = [];
     checkboxes.forEach((cb, i) => {
       cb.checked = saved[i] ?? cb.hasAttribute('checked');
-      cb.addEventListener('change', () => {
+      const handler = () => {
         saved[i] = cb.checked;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-      });
+      };
+      cb.addEventListener('change', handler);
+      cleanupFns.push(() => cb.removeEventListener('change', handler));
     });
+    return () => cleanupFns.forEach(fn => fn());
   }, [article, loading, slug]);
 
   if (loading) {
@@ -78,7 +94,7 @@ export default function ArticleDetail() {
     return <div className="not-found">文章不存在</div>;
   }
 
-  const html = marked(article.content) as string;
+  const html = useMemo(() => marked(article.content) as string, [article.content]);
 
   return (
     <article className="article-detail">

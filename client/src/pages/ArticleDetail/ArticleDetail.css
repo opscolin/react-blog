@@ -82,7 +82,8 @@
 }
 
 .code-window-header {
-  background: var(--terminal-header);
+  background: #1e1e1e;
+  /* background: var(--terminal-header); */
   padding: 10px 14px;
   display: flex;
   gap: 6px;
