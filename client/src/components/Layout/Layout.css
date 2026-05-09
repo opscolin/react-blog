@@ -29,6 +29,7 @@
   color: var(--text-main);
   font-weight: 700;
   font-size: 1.25rem;
+  flex-shrink: 0;
 }
 
 .logo-img {
@@ -40,6 +41,7 @@
 .nav {
   display: flex;
   gap: 1.5rem;
+  justify-content: center;
   flex: 1;
 }
 

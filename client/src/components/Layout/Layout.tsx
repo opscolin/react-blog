@@ -30,6 +30,7 @@ export default function Layout() {
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
+    if (path === '/category') return location.pathname === '/category';
     return location.pathname.startsWith(path);
   };
 
@@ -63,6 +64,9 @@ export default function Layout() {
           <nav className={`nav ${mobileMenuOpen ? 'open' : ''}`}>
             <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
               最近
+            </Link>
+            <Link to="/category/ai" className={`nav-link ${isActive('/category/ai') ? 'active' : ''}`}>
+              AI专区    
             </Link>
             {settings?.menuVisibility?.categories && (
               <Link to="/category" className={`nav-link ${isActive('/category') ? 'active' : ''}`}>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
@@ -14,6 +14,14 @@ marked.setOptions({
 });
 
 marked.use({
+  hooks: {
+    postprocess(html) {
+      return html.replace(/<input type="checkbox"(.*?)>/g, (_, attrs) => {
+        const cleaned = attrs.replace(/\s*disabled\s*/g, '');
+        return `<input type="checkbox"${cleaned} class="task-list-item-checkbox">`;
+      });
+    }
+  },
   renderer: {
     code(code: string, infostring?: string): string {
       const lang = infostring || 'plaintext';
@@ -29,6 +37,7 @@ export default function ArticleDetail() {
   const { slug } = useParams();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -43,6 +52,23 @@ export default function ArticleDetail() {
       })
       .finally(() => setLoading(false));
   }, [slug]);
+
+  useEffect(() => {
+    if (!article || loading) return;
+    const STORAGE_KEY = `article-checkbox-state-${slug}`;
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const container = contentRef.current;
+    if (!container) return;
+
+    const checkboxes = container.querySelectorAll<HTMLInputElement>('input.task-list-item-checkbox');
+    checkboxes.forEach((cb, i) => {
+      cb.checked = saved[i] ?? cb.hasAttribute('checked');
+      cb.addEventListener('change', () => {
+        saved[i] = cb.checked;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      });
+    });
+  }, [article, loading, slug]);
 
   if (loading) {
     return <div className="loading">加载中...</div>;
@@ -83,7 +109,7 @@ export default function ArticleDetail() {
           )}
         </div>
       </header>
-      <div className="markdown-content" dangerouslySetInnerHTML={{ __html: html }} />
+      <div ref={contentRef} className="markdown-content" dangerouslySetInnerHTML={{ __html: html }} />
     </article>
   );
 }

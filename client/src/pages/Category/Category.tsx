@@ -18,6 +18,7 @@ export default function Category() {
 
   useEffect(() => {
     setLoading(true);
+    setCategory(null);
     if (slug) {
       api.get('/articles', { params: { page, limit: 10, category: slug } })
         .then(res => {

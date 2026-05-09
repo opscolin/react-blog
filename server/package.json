@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && npm run copy:static",
+    "copy:static": "cp -r src/db/*.sql dist/db/ 2>/dev/null || mkdir -p dist/db && cp src/db/*.sql dist/db/",
     "start": "node dist/index.js",
     "init-admin": "tsx scripts/init-admin.ts",
     "test": "vitest run"

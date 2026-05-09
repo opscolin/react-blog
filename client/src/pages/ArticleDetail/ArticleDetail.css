@@ -156,3 +156,27 @@
 @media (max-width: 768px) {
   .article-title { font-size: 1.5rem; }
 }
+
+.markdown-content ul.contains-task-list,
+.markdown-content ol.contains-task-list {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.markdown-content li.task-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content li.task-list-item input[type="checkbox"] {
+  margin-top: 0.3rem;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.markdown-content li.task-list-item input[type="checkbox"]:checked {
+  accent-color: var(--accent);
+}

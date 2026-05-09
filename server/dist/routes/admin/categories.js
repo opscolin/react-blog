@@ -9,6 +9,12 @@ const auth_1 = require("../../middleware/auth");
 const slugify_1 = __importDefault(require("slugify"));
 const router = (0, express_1.Router)();
 router.use(auth_1.authMiddleware);
+function generateSlug(name) {
+    const asciiSlug = (0, slugify_1.default)(name, { lower: true, strict: true });
+    if (asciiSlug)
+        return asciiSlug;
+    return Buffer.from(name).toString('base64url');
+}
 router.get('/', async (_, res) => {
     const categories = await (0, db_1.sql) `SELECT * FROM categories ORDER BY name`;
     res.json(categories);
@@ -19,7 +25,11 @@ router.post('/', async (req, res) => {
         res.status(400).json({ error: 'Name required' });
         return;
     }
-    const slug = (0, slugify_1.default)(name, { lower: true, strict: true });
+    const slug = generateSlug(name);
+    if (!slug) {
+        res.status(400).json({ error: 'Invalid name' });
+        return;
+    }
     const existingResult = await (0, db_1.sql) `SELECT id FROM categories WHERE slug = ${slug}`;
     if (existingResult.length > 0) {
         res.status(400).json({ error: 'Category with this name already exists' });
@@ -41,7 +51,7 @@ router.put('/:id', async (req, res) => {
         res.status(404).json({ error: 'Category not found' });
         return;
     }
-    const slug = name ? (0, slugify_1.default)(name, { lower: true, strict: true }) : existing.slug;
+    const slug = name ? generateSlug(name) : existing.slug;
     await (0, db_1.sql) `
     UPDATE categories SET name = ${name || existing.name}, slug = ${slug}
     WHERE id = ${id}

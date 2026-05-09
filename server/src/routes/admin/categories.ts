@@ -6,6 +6,12 @@ import slugify from 'slugify';
 const router = Router();
 router.use(authMiddleware);
 
+function generateSlug(name: string): string {
+  const asciiSlug = slugify(name, { lower: true, strict: true });
+  if (asciiSlug) return asciiSlug;
+  return Buffer.from(name).toString('base64url');
+}
+
 router.get('/', async (_: AuthRequest, res: Response) => {
   const categories = await sql`SELECT * FROM categories ORDER BY name`;
   res.json(categories);
@@ -19,7 +25,12 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     return;
   }
 
-  const slug = slugify(name, { lower: true, strict: true });
+  const slug = generateSlug(name);
+
+  if (!slug) {
+    res.status(400).json({ error: 'Invalid name' });
+    return;
+  }
   const existingResult = await sql`SELECT id FROM categories WHERE slug = ${slug}`;
   if (existingResult.length > 0) {
     res.status(400).json({ error: 'Category with this name already exists' });
@@ -45,7 +56,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
     return;
   }
 
-  const slug = name ? slugify(name, { lower: true, strict: true }) : existing.slug;
+  const slug = name ? generateSlug(name) : existing.slug;
 
   await sql`
     UPDATE categories SET name = ${name || existing.name}, slug = ${slug}
