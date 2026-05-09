@@ -86,6 +86,11 @@ export default function ArticleDetail() {
     return () => cleanupFns.forEach(fn => fn());
   }, [article, loading, slug]);
 
+  const html = useMemo(() => {
+    if (!article) return '';
+    return marked(article.content) as string;
+  }, [article]);
+
   if (loading) {
     return <div className="loading">加载中...</div>;
   }
@@ -93,8 +98,6 @@ export default function ArticleDetail() {
   if (!article) {
     return <div className="not-found">文章不存在</div>;
   }
-
-  const html = useMemo(() => marked(article.content) as string, [article.content]);
 
   return (
     <article className="article-detail">
