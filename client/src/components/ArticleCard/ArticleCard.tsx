@@ -18,6 +18,13 @@ export default function ArticleCard({ article }: ArticleCardProps) {
         <span className="article-card-date">
           {dayjs(article.created_at).format('YYYY-MM-DD')}
         </span>
+        <span className="article-card-views">
+          <svg className="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          {article.view_count || 0}
+        </span>
         {article.category && (
           <Link to={`/category/${article.category.slug}`} className="article-card-category">
             <svg className="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

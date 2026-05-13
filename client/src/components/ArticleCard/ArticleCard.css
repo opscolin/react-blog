@@ -45,6 +45,10 @@
   opacity: 0.8;
 }
 
+.article-card-views {
+  opacity: 0.8;
+}
+
 .article-card-category {
   display: inline-flex;
   align-items: center;
