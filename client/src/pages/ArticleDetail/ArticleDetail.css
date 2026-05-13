@@ -34,6 +34,13 @@
   opacity: 0.8;
 }
 
+.article-views {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  opacity: 0.8;
+}
+
 .article-category {
   display: inline-flex;
   align-items: center;

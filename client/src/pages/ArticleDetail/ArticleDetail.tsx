@@ -105,6 +105,13 @@ export default function ArticleDetail() {
         <h1 className="article-title">{article.title}</h1>
         <div className="article-meta">
           <span className="article-date">{dayjs(article.created_at).format('YYYY-MM-DD')}</span>
+          <span className="article-views">
+            <svg className="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            {article.view_count || 0} 次阅读
+          </span>
           {article.category && (
             <Link to={`/category/${article.category.slug}`} className="article-category">
               <svg className="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
