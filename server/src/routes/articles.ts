@@ -1,6 +1,14 @@
 import { Router, Response } from 'express';
 import { sql } from '../db';
 
+function getClientIP(req: any): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.ip || req.connection?.remoteAddress || '127.0.0.1';
+}
+
 const router = Router();
 
 router.get('/', async (req, res) => {
@@ -83,6 +91,25 @@ router.get('/:slug', async (req, res) => {
   if (!article) {
     res.status(404).json({ error: 'Article not found' });
     return;
+  }
+
+  const clientIP = getClientIP(req);
+
+  const recentView = await sql`
+    SELECT id FROM article_views
+    WHERE article_id = ${article.id}
+      AND ip = ${clientIP}
+      AND created_at > NOW() - INTERVAL '5 minutes'
+  `;
+
+  if (recentView.length === 0) {
+    await sql`
+      INSERT INTO article_views (article_id, ip) VALUES (${article.id}, ${clientIP})
+    `;
+    await sql`
+      UPDATE articles SET view_count = view_count + 1 WHERE id = ${article.id}
+    `;
+    article.view_count = (article.view_count || 0) + 1;
   }
 
   const tags = await sql`
