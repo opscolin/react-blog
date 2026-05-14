@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
   const offset = (page - 1) * limit;
 
   let query = `
-    SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug, a.view_count
+    SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug, a.view_count, a.cover_image
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.status = 'published'
@@ -49,7 +49,7 @@ router.get('/', async (req, res) => {
     paramIndex += 3;
   }
 
-  const countQuery = query.replace('SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug, a.view_count', 'SELECT COUNT(DISTINCT a.id) as count');
+  const countQuery = query.replace('SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug, a.view_count, a.cover_image', 'SELECT COUNT(DISTINCT a.id) as count');
   const countResult = await sql.unsafe(countQuery, params);
   const total = countResult[0]?.count || 0;
 
@@ -80,7 +80,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:slug', async (req, res) => {
   const articleResult = await sql`
-    SELECT a.*, c.name as category_name, c.slug as category_slug
+    SELECT a.*, c.name as category_name, c.slug as category_slug, a.view_count, a.cover_image
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.slug = ${req.params.slug} AND a.status = 'published'
