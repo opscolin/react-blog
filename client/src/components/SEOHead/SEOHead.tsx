@@ -23,7 +23,6 @@ export default function SEOHead({
 }: SEOHeadProps) {
   const siteName = '我的博客';
   const defaultDescription = '个人博客';
-  const defaultImage = '/images/logo.svg';
 
   useEffect(() => {
     if (title) {

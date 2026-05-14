@@ -30,6 +30,7 @@ export interface Article {
   created_at: string;
   updated_at: string;
   view_count: number;
+  cover_image?: string;
 }
 
 export interface Pagination {
