@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS articles (
   slug TEXT UNIQUE NOT NULL,
   content TEXT NOT NULL,
   excerpt TEXT,
+  cover_image TEXT,
   category_id INTEGER REFERENCES categories(id),
   status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'published')),
   view_count INTEGER DEFAULT 0,
