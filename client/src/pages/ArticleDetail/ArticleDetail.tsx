@@ -6,6 +6,7 @@ import 'highlight.js/styles/github-dark.css';
 import dayjs from 'dayjs';
 import api from '../../api';
 import type { Article } from '../../types';
+import SEOHead from '../../components/SEOHead/SEOHead';
 import './ArticleDetail.css';
 
 marked.setOptions({
@@ -100,7 +101,30 @@ export default function ArticleDetail() {
   }
 
   return (
-    <article className="article-detail">
+    <>
+      <SEOHead
+        title={article.title}
+        description={article.excerpt || article.content?.substring(0, 200)}
+        ogType="article"
+        ogImage={article.cover_image || undefined}
+      />
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Article",
+          "headline": article.title,
+          "description": article.excerpt || article.content?.substring(0, 200),
+          "datePublished": article.created_at,
+          "dateModified": article.updated_at,
+          "author": {
+            "@type": "Person",
+            "name": "博主"
+          },
+          "image": article.cover_image,
+          "url": window.location.href
+        })}
+      </script>
+      <article className="article-detail">
       <header className="article-header">
         <h1 className="article-title">{article.title}</h1>
         <div className="article-meta">
@@ -137,5 +161,6 @@ export default function ArticleDetail() {
       </header>
       <div ref={contentRef} className="markdown-content" dangerouslySetInnerHTML={{ __html: html }} />
     </article>
+    </>
   );
 }
