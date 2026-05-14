@@ -11,6 +11,7 @@ import adminArticleRoutes from './routes/admin/articles';
 import adminCategoryRoutes from './routes/admin/categories';
 import adminTagRoutes from './routes/admin/tags';
 import adminSettingsRoutes from './routes/admin/settings';
+import sitemap from './routes/sitemap';
 import rss from './routes/rss';
 
 const app = express();
@@ -33,6 +34,7 @@ app.use('/api/admin/articles', adminArticleRoutes);
 app.use('/api/admin/categories', adminCategoryRoutes);
 app.use('/api/admin/tags', adminTagRoutes);
 app.use('/api/admin/settings', adminSettingsRoutes);
+app.use('/sitemap.xml', sitemap);
 app.use('/rss.xml', rss);
 
 app.get('/api/health', (_, res) => {
