@@ -45,9 +45,9 @@ export default function Category() {
 
   if (!slug) {
     return (
-      <div className="category-page">
+      <main className="category-page">
         <h1 className="page-title">分类列表</h1>
-        <div className="category-cloud">
+        <nav className="category-cloud">
           {categories.length > 0 ? (
             categories.map(cat => (
               <Link key={cat.id} to={`/category/${cat.slug}`} className="category-item">
@@ -58,15 +58,15 @@ export default function Category() {
           ) : (
             <p className="empty">暂无分类</p>
           )}
-        </div>
-      </div>
+        </nav>
+      </main>
     );
   }
 
   return (
-    <div className="category-page">
+    <main className="category-page">
       <h1 className="page-title">分类: {category?.name || slug}</h1>
-      <div className="article-list">
+      <section className="article-list">
         {articles.length > 0 ? (
           articles.map(article => (
             <ArticleCard key={article.id} article={article} />
@@ -74,10 +74,10 @@ export default function Category() {
         ) : (
           <p className="empty">暂无文章</p>
         )}
-      </div>
+      </section>
       {pagination && (
         <Pagination page={page} totalPages={pagination.totalPages} basePath={`/category/${slug}`} />
       )}
-    </div>
+    </main>
   );
 }

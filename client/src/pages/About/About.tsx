@@ -69,10 +69,10 @@ export default function About() {
     return <div className="loading">加载中...</div>;
   }
 
-  return (
-    <div className="about-page">
+return (
+    <main className="about-page">
       <h1 className="page-title">关于</h1>
-      <div ref={contentRef} className="about-content markdown-content" dangerouslySetInnerHTML={{ __html: html }} />
-    </div>
+      <article className="about-content markdown-content" dangerouslySetInnerHTML={{ __html: html }} />
+    </main>
   );
 }

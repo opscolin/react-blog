@@ -34,9 +34,9 @@ export default function Tag() {
   }
 
   return (
-    <div className="tag-page">
+    <main className="tag-page">
       <h1 className="page-title">标签: {tag?.name || slug}</h1>
-      <div className="article-list">
+      <section className="article-list">
         {articles.length > 0 ? (
           articles.map(article => (
             <ArticleCard key={article.id} article={article} />
@@ -44,10 +44,10 @@ export default function Tag() {
         ) : (
           <p className="empty">暂无文章</p>
         )}
-      </div>
+      </section>
       {pagination && (
         <Pagination page={page} totalPages={pagination.totalPages} basePath={`/tag/${slug}`} />
       )}
-    </div>
+    </main>
   );
 }

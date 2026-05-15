@@ -29,9 +29,9 @@ export default function Home() {
   }
 
   return (
-    <div className="home">
+    <main className="home">
       <h1 className="page-title">{search ? `搜索结果: "${search}"` : '文章列表'}</h1>
-      <div className="article-list">
+      <section className="article-list">
         {articles.length > 0 ? (
           articles.map(article => (
             <ArticleCard key={article.id} article={article} />
@@ -39,10 +39,7 @@ export default function Home() {
         ) : (
           <p className="empty">暂无文章</p>
         )}
-      </div>
-      {pagination && (
-        <Pagination page={page} totalPages={pagination.totalPages} />
-      )}
-    </div>
+</section>
+    </main>
   );
 }

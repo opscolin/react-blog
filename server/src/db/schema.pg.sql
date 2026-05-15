@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS article_views (
   ip VARCHAR(45),
   created_at TIMESTAMP DEFAULT NOW()
 );
-CREATE INDEX idx_article_views_article_ip_time ON article_views(article_id, ip, created_at);
-CREATE INDEX idx_article_views_expire ON article_views(created_at);
+-- CREATE INDEX idx_article_views_article_ip_time ON article_views(article_id, ip, created_at);
+-- CREATE INDEX idx_article_views_expire ON article_views(created_at);
 
 CREATE TABLE IF NOT EXISTS article_tags (
   article_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,

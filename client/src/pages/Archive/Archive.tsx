@@ -25,7 +25,7 @@ export default function Archive() {
   if (year && month) {
     const articles = archives[year]?.[month] || [];
     return (
-      <div className="archive-page">
+      <main className="archive-page">
         <div className="archive-header">
           <Link to="/archive" className="archive-back">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -35,7 +35,7 @@ export default function Archive() {
           </Link>
           <h1 className="archive-title">{year}年{parseInt(month)}月</h1>
         </div>
-        <div className="archive-list">
+        <nav className="archive-list">
           {articles.map(article => {
             const date = new Date(article.created_at);
             return (
@@ -47,15 +47,15 @@ export default function Archive() {
               </Link>
             );
           })}
-        </div>
-      </div>
+        </nav>
+      </main>
     );
   }
 
   return (
-    <div className="archive-page">
+    <main className="archive-page">
       <h1 className="archive-title">文章归档</h1>
-      <div className="archive-container">
+      <section className="archive-container">
         {years.map(y => (
           <div key={y} className="archive-year-row">
             <div className="archive-year">{y}</div>
@@ -76,7 +76,7 @@ export default function Archive() {
             </div>
           </div>
         ))}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
