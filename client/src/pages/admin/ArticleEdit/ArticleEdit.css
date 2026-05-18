@@ -1,5 +1,5 @@
 .article-edit-page {
-  max-width: 800px;
+  max-width: 1000px;
   position: relative;
 }
 
@@ -33,6 +33,30 @@
   color: var(--text-main);
 }
 
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--site-bg);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+textarea.input {
+  min-height: 200px;
+  resize: vertical;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.6;
+}
+
 .form-label-row {
   display: flex;
   justify-content: space-between;
@@ -55,6 +79,19 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+.form-row .form-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+input[type="datetime-local"].input {
+  color-scheme: light;
+}
+
+input[type="datetime-local"].input::-webkit-calendar-picker-indicator {
+  filter: invert(0.3);
+  cursor: pointer;
 }
 
 .tag-selector {

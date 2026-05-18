@@ -26,11 +26,22 @@ CREATE TABLE IF NOT EXISTS articles (
   slug TEXT UNIQUE NOT NULL,
   content TEXT NOT NULL,
   excerpt TEXT,
+  cover_image TEXT,
   category_id INTEGER REFERENCES categories(id),
   status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'published')),
+  view_count INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS article_views (
+  id SERIAL PRIMARY KEY,
+  article_id INTEGER REFERENCES articles(id),
+  ip VARCHAR(45),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX idx_article_views_article_ip_time ON article_views(article_id, ip, created_at);
+CREATE INDEX idx_article_views_expire ON article_views(created_at);
 
 CREATE TABLE IF NOT EXISTS article_tags (
   article_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,

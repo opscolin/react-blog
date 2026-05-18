@@ -71,7 +71,6 @@ export default function About() {
 
 return (
     <main className="about-page">
-      <h1 className="page-title">关于</h1>
       <article className="about-content markdown-content" dangerouslySetInnerHTML={{ __html: html }} />
     </main>
   );

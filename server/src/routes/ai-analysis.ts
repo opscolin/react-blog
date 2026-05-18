@@ -1,0 +1,82 @@
+import { Router, Response } from 'express';
+import { sql } from '../db';
+import OpenAI from 'openai';
+
+const router = Router();
+
+router.post('/analyze', async (req, res) => {
+  try {
+    const configResult = await sql`SELECT api_key, base_url, model, enabled FROM ai_config ORDER BY id DESC LIMIT 1`;
+    const config = configResult[0];
+
+    if (!config || !config.enabled || !config.api_key) {
+      res.status(400).json({ error: 'AI analysis is not configured or disabled' });
+      return;
+    }
+
+    const entriesResult = await sql`
+      SELECT title, content, created_at::text FROM diaries
+      WHERE type = 'diary'
+      ORDER BY created_at DESC LIMIT 10
+    `;
+
+    if (entriesResult.length === 0) {
+      res.status(400).json({ error: 'No diary entries to analyze' });
+      return;
+    }
+
+    const client = new OpenAI({
+      apiKey: config.api_key,
+      baseURL: config.base_url || 'https://api.openai.com/v1'
+    });
+
+    const prompt = `You are an expert life coach and psychologist. Analyze the following diary entries and provide:
+1. A short, poetic summary (max 20 words).
+2. 3 concrete growth tips for the user based on their patterns.
+3. A one-word sentiment descriptor.
+
+Entries:
+${entriesResult.map((e: any) => `[${e.created_at}] ${e.title}: ${e.content}`).join('\n\n')}
+
+Respond ONLY with a JSON object:
+{
+  "summary": "...",
+  "growthTips": ["...", "...", "..."],
+  "sentiment": "..."
+}`;
+
+    const response = await client.chat.completions.create({
+      model: config.model || 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' }
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('Empty response from AI service');
+    }
+
+    const result = JSON.parse(content);
+
+    const aiEntry = await sql`
+      INSERT INTO diaries (title, content, tags, type, ai_summary, ai_growth_tips, ai_sentiment)
+      VALUES (
+        'SoulNotes AI 月度洞察',
+        ${result.summary + '\n\n成长建议:\n' + result.growthTips.join('\n')},
+        ${['AI分析', '成长', '月度总结']},
+        'ai',
+        ${result.summary},
+        ${result.growthTips},
+        ${result.sentiment}
+      )
+      RETURNING *
+    `;
+
+    res.json({ success: true, entry: aiEntry[0], analysis: result });
+  } catch (error: any) {
+    console.error('AI Analysis Error:', error);
+    res.status(500).json({ error: error.message || 'Failed to analyze growth' });
+  }
+});
+
+export default router;

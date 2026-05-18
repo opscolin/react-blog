@@ -2,6 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const db_1 = require("../db");
+function getClientIP(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+        return forwarded.split(',')[0].trim();
+    }
+    return req.ip || req.connection?.remoteAddress || '127.0.0.1';
+}
 const router = (0, express_1.Router)();
 router.get('/', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
@@ -11,7 +18,7 @@ router.get('/', async (req, res) => {
     const search = req.query.search;
     const offset = (page - 1) * limit;
     let query = `
-    SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug
+    SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug, a.view_count, a.cover_image
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.status = 'published'
@@ -36,7 +43,7 @@ router.get('/', async (req, res) => {
         params.push(searchPattern, searchPattern, searchPattern);
         paramIndex += 3;
     }
-    const countQuery = query.replace('SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug', 'SELECT COUNT(DISTINCT a.id) as count');
+    const countQuery = query.replace('SELECT DISTINCT a.*, c.name as category_name, c.slug as category_slug, a.view_count, a.cover_image', 'SELECT COUNT(DISTINCT a.id) as count');
     const countResult = await db_1.sql.unsafe(countQuery, params);
     const total = countResult[0]?.count || 0;
     query += ` ORDER BY a.created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
@@ -61,7 +68,7 @@ router.get('/', async (req, res) => {
 });
 router.get('/:slug', async (req, res) => {
     const articleResult = await (0, db_1.sql) `
-    SELECT a.*, c.name as category_name, c.slug as category_slug
+    SELECT a.*, c.name as category_name, c.slug as category_slug, a.view_count, a.cover_image
     FROM articles a
     LEFT JOIN categories c ON a.category_id = c.id
     WHERE a.slug = ${req.params.slug} AND a.status = 'published'
@@ -70,6 +77,22 @@ router.get('/:slug', async (req, res) => {
     if (!article) {
         res.status(404).json({ error: 'Article not found' });
         return;
+    }
+    const clientIP = getClientIP(req);
+    const recentView = await (0, db_1.sql) `
+    SELECT id FROM article_views
+    WHERE article_id = ${article.id}
+      AND ip = ${clientIP}
+      AND created_at > NOW() - INTERVAL '5 minutes'
+  `;
+    if (recentView.length === 0) {
+        await (0, db_1.sql) `
+      INSERT INTO article_views (article_id, ip) VALUES (${article.id}, ${clientIP})
+    `;
+        await (0, db_1.sql) `
+      UPDATE articles SET view_count = view_count + 1 WHERE id = ${article.id}
+    `;
+        article.view_count = (article.view_count || 0) + 1;
     }
     const tags = await (0, db_1.sql) `
     SELECT t.* FROM tags t

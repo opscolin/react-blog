@@ -9,8 +9,9 @@ export default function Settings() {
     blogLogo: '',
     paginationSize: 10,
     aboutContent: '',
-    menuVisibility: { categories: true, tags: true, archives: true, about: true }
+    menuVisibility: { categories: true, tags: true, archives: true, about: true, diary: true }
   });
+  const [aiConfig, setAiConfig] = useState({ api_key: '', base_url: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', enabled: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -31,9 +32,11 @@ export default function Settings() {
           categories: true,
           tags: true,
           archives: true,
-          about: true
+          about: true,
+          diary: true
         }
       });
+      api.get('/admin/ai-config').then(res => setAiConfig(res.data));
     }).finally(() => setLoading(false));
   }, []);
 
@@ -42,6 +45,7 @@ export default function Settings() {
     setSaving(true);
     try {
       await api.put('/admin/settings', settings);
+      await api.put('/admin/ai-config', aiConfig);
       showToast('设置已保存', 'success');
     } catch {
       showToast('保存失败', 'error');
@@ -150,6 +154,52 @@ export default function Settings() {
               />
               <span>关于</span>
             </label>
+            <label className="toggle-item">
+              <input
+                type="checkbox"
+                checked={settings.menuVisibility.diary}
+                onChange={() => toggleMenu('diary')}
+              />
+              <span>日记</span>
+            </label>
+          </div>
+        </div>
+        <div className="form-group">
+          <label>AI 配置</label>
+          <div className="ai-config">
+            <label className="toggle-item">
+              <input
+                type="checkbox"
+                checked={aiConfig.enabled}
+                onChange={e => setAiConfig(prev => ({ ...prev, enabled: e.target.checked }))}
+              />
+              <span>启用 AI 分析</span>
+            </label>
+            <div className="ai-config-fields">
+              <input
+                type="password"
+                className="input"
+                placeholder="API Key"
+                value={aiConfig.api_key}
+                onChange={e => setAiConfig(prev => ({ ...prev, api_key: e.target.value }))}
+              />
+              <input
+                type="text"
+                className="input"
+                placeholder="Base URL (默认: https://api.openai.com/v1)"
+                value={aiConfig.base_url}
+                onChange={e => setAiConfig(prev => ({ ...prev, base_url: e.target.value }))}
+              />
+              <select
+                className="input"
+                value={aiConfig.model}
+                onChange={e => setAiConfig(prev => ({ ...prev, model: e.target.value }))}
+              >
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+              </select>
+            </div>
           </div>
         </div>
         <div className="form-actions">

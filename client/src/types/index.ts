@@ -61,5 +61,19 @@ export interface Settings {
     tags: boolean;
     archives: boolean;
     about: boolean;
+    diary: boolean;
   };
+}
+
+export interface Diary {
+  id: number;
+  title: string;
+  content: string;
+  tags: string[];
+  type: 'diary' | 'ai';
+  ai_summary?: string;
+  ai_growth_tips?: string[];
+  ai_sentiment?: string;
+  created_at: string;
+  updated_at: string;
 }

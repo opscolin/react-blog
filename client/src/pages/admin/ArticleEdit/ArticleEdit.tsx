@@ -174,7 +174,6 @@ export default function ArticleEdit() {
               ))}
             </select>
           </div>
-          <div className="form-row">
           <div className="form-group">
             <label>发布时间</label>
             <input
@@ -195,7 +194,6 @@ export default function ArticleEdit() {
               <option value="published">发布</option>
             </select>
           </div>
-        </div>
         </div>
         <div className="form-group">
           <div className="form-label-row">

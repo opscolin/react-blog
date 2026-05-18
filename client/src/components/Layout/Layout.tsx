@@ -88,6 +88,11 @@ export default function Layout() {
                 关于
               </Link>
             )}
+            {settings?.menuVisibility?.diary && (
+              <Link to="/diary" className={`nav-link ${isActive('/diary') ? 'active' : ''}`}>
+                日记
+              </Link>
+            )}
           </nav>
           <div className="header-actions">
             <div className={`search-container ${searchOpen ? 'open' : ''}`}>

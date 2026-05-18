@@ -16,6 +16,8 @@ const articles_2 = __importDefault(require("./routes/admin/articles"));
 const categories_2 = __importDefault(require("./routes/admin/categories"));
 const tags_2 = __importDefault(require("./routes/admin/tags"));
 const settings_2 = __importDefault(require("./routes/admin/settings"));
+const sitemap_1 = __importDefault(require("./routes/sitemap"));
+const rss_1 = __importDefault(require("./routes/rss"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
 app.use((0, cors_1.default)());
@@ -33,6 +35,8 @@ app.use('/api/admin/articles', articles_2.default);
 app.use('/api/admin/categories', categories_2.default);
 app.use('/api/admin/tags', tags_2.default);
 app.use('/api/admin/settings', settings_2.default);
+app.use('/sitemap.xml', sitemap_1.default);
+app.use('/rss.xml', rss_1.default);
 app.get('/api/health', (_, res) => {
     res.json({ status: 'ok' });
 });

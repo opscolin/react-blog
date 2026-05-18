@@ -13,6 +13,11 @@ import adminTagRoutes from './routes/admin/tags';
 import adminSettingsRoutes from './routes/admin/settings';
 import sitemap from './routes/sitemap';
 import rss from './routes/rss';
+import diariesRoutes from './routes/diaries';
+import diariesAdminRoutes from './routes/admin/diaries';
+import aiConfigRoutes from './routes/admin/ai-config';
+import aiAnalysisRoutes from './routes/ai-analysis';
+import { initScheduledTasks } from './cron/scheduler';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -23,6 +28,8 @@ app.use(express.json());
 initDatabase().catch(err => {
   console.error('Database initialization error:', err);
 });
+
+initScheduledTasks();
 
 app.use('/api/auth', authRoutes);
 app.use('/api/articles', articlesRoutes);
@@ -36,6 +43,10 @@ app.use('/api/admin/tags', adminTagRoutes);
 app.use('/api/admin/settings', adminSettingsRoutes);
 app.use('/sitemap.xml', sitemap);
 app.use('/rss.xml', rss);
+app.use('/api/diaries', diariesRoutes);
+app.use('/api/admin/diaries', diariesAdminRoutes);
+app.use('/api/admin/ai-config', aiConfigRoutes);
+app.use('/api/ai-analysis', aiAnalysisRoutes);
 
 app.get('/api/health', (_, res) => {
   res.json({ status: 'ok' });

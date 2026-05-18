@@ -54,6 +54,32 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS diaries (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  tags TEXT[] DEFAULT '{}',
+  type TEXT DEFAULT 'diary' CHECK(type IN ('diary', 'ai')),
+  ai_summary TEXT,
+  ai_growth_tips TEXT[],
+  ai_sentiment TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ai_config (
+  id SERIAL PRIMARY KEY,
+  api_key TEXT,
+  base_url TEXT DEFAULT 'https://api.openai.com/v1',
+  model TEXT DEFAULT 'gpt-3.5-turbo',
+  enabled BOOLEAN DEFAULT false,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_diaries_created ON diaries(created_at);
+CREATE INDEX IF NOT EXISTS idx_diaries_type ON diaries(type);
+CREATE INDEX IF NOT EXISTS idx_diaries_tags ON diaries USING GIN(tags);
+
 CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
 CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);
 CREATE INDEX IF NOT EXISTS idx_articles_category ON articles(category_id);
@@ -66,5 +92,6 @@ CREATE INDEX IF NOT EXISTS idx_article_tags_tag ON article_tags(tag_id);
 INSERT INTO settings (key, value) VALUES ('blogTitle', 'My Blog') ON CONFLICT (key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('blogLogo', '/images/logo.svg') ON CONFLICT (key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('paginationSize', '10') ON CONFLICT (key) DO NOTHING;
-INSERT INTO settings (key, value) VALUES ('menuVisibility', '{"categories": true, "tags": true, "archives": true, "about": true}') ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('menuVisibility', '{"categories": true, "tags": true, "archives": true, "about": true, "diary": true}') ON CONFLICT (key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('aboutContent', '这是一个个人博客，记录技术文章和思考。') ON CONFLICT (key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('aiConfig', '{"enabled": false, "model": "gpt-3.5-turbo", "baseUrl": "https://api.openai.com/v1"}') ON CONFLICT (key) DO NOTHING;
