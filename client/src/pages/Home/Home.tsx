@@ -4,25 +4,32 @@ import api from '../../api';
 import type { Article, Pagination as PaginationType } from '../../types';
 import ArticleCard from '../../components/ArticleCard/ArticleCard';
 import Pagination from '../../components/Pagination/Pagination';
+import CategoryScroll from '../../components/CategoryScroll/CategoryScroll';
 import './Home.css';
 
 export default function Home() {
   const [searchParams] = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1');
   const search = searchParams.get('search') || undefined;
+  const currentCategory = searchParams.get('category') || undefined;
   const [articles, setArticles] = useState<Article[]>([]);
   const [pagination, setPagination] = useState<PaginationType | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    api.get('/categories').then(res => setCategories(res.data));
+  }, []);
+
+  useEffect(() => {
     setLoading(true);
-    api.get('/articles', { params: { page, limit: 10, search } })
+    api.get('/articles', { params: { page, limit: 10, search, category: currentCategory } })
       .then(res => {
         setArticles(res.data.articles);
         setPagination(res.data.pagination);
       })
       .finally(() => setLoading(false));
-  }, [page, search]);
+  }, [page, search, currentCategory]);
 
   if (loading) {
     return <div className="loading">加载中...</div>;
@@ -30,7 +37,9 @@ export default function Home() {
 
   return (
     <main className="home">
-      <h1 className="page-title">{search ? `搜索结果: "${search}"` : '文章列表'}</h1>
+      {categories.length > 0 && (
+        <CategoryScroll categories={categories} />
+      )}
       <section className="article-list">
         {articles.length > 0 ? (
           articles.map(article => (
@@ -39,7 +48,10 @@ export default function Home() {
         ) : (
           <p className="empty">暂无文章</p>
         )}
-</section>
+      </section>
+      {pagination && pagination.totalPages > 1 && (
+        <Pagination pagination={pagination} />
+      )}
     </main>
   );
 }

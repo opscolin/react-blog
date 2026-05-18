@@ -3,12 +3,6 @@
   margin: 0 auto;
 }
 
-.page-title {
-  font-size: 1.75rem;
-  margin-bottom: 2rem;
-  color: var(--text-main);
-}
-
 .article-list {
   margin-bottom: 2rem;
 }
