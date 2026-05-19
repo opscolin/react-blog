@@ -190,15 +190,13 @@ export default function Settings() {
                 value={aiConfig.base_url}
                 onChange={e => setAiConfig(prev => ({ ...prev, base_url: e.target.value }))}
               />
-              <select
+              <input
+                type="text"
                 className="input"
+                placeholder="模型名称 (如: gpt-3.5-turbo, gpt-4, claude-3)"
                 value={aiConfig.model}
                 onChange={e => setAiConfig(prev => ({ ...prev, model: e.target.value }))}
-              >
-                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                <option value="gpt-4">GPT-4</option>
-                <option value="gpt-4-turbo">GPT-4 Turbo</option>
-              </select>
+              />
             </div>
           </div>
         </div>
