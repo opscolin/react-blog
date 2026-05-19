@@ -50,7 +50,7 @@ export default function Home() {
         )}
       </section>
       {pagination && pagination.totalPages > 1 && (
-        <Pagination pagination={pagination} />
+        <Pagination page={pagination.page} totalPages={pagination.totalPages} />
       )}
     </main>
   );

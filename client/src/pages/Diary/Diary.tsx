@@ -86,9 +86,9 @@ export default function Diary() {
       setStats(statsRes.data);
       const timelineRes = await api.get('/diaries/timeline', { params: { search: searchTerm || undefined } });
       const allEntries: Diary[] = [];
-      Object.values(timelineRes.data).forEach((yearObj: any) => {
-        Object.values(yearObj).forEach((monthArr: Diary[]) => {
-          allEntries.push(...monthArr);
+      Object.entries(timelineRes.data as Record<string, Record<string, Diary[]>>).forEach(([, months]) => {
+        Object.entries(months).forEach(([, entries]) => {
+          allEntries.push(...entries);
         });
       });
       allEntries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
