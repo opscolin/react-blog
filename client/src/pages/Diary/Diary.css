@@ -139,6 +139,7 @@
   line-height: 1.7;
   margin-bottom: 1rem;
   font-style: italic;
+  white-space: pre-wrap;
 }
 
 .diary-card-tags {
@@ -391,6 +392,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-style: italic;
+  white-space: pre-wrap;
 }
 
 .timeline-entry.ai-entry .timeline-excerpt {
@@ -583,6 +585,7 @@
   line-height: 1.8;
   margin: 0 0 1.5rem;
   font-style: italic;
+  white-space: pre-wrap;
 }
 
 .diary-modal-tags {
