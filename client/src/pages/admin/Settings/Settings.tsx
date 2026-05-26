@@ -9,7 +9,8 @@ export default function Settings() {
     blogLogo: '',
     paginationSize: 10,
     aboutContent: '',
-    menuVisibility: { categories: true, tags: true, archives: true, about: true, diary: true }
+    projectContent: '',
+    menuVisibility: { categories: true, tags: true, archives: true, about: true, diary: true, projects: true }
   });
   const [aiConfig, setAiConfig] = useState({ api_key: '', base_url: 'https://api.openai.com/v1', model: 'gpt-3.5-turbo', enabled: false });
   const [loading, setLoading] = useState(true);
@@ -28,12 +29,14 @@ export default function Settings() {
         blogLogo: res.data.blogLogo || '',
         paginationSize: res.data.paginationSize || 10,
         aboutContent: res.data.aboutContent || '',
+        projectContent: res.data.projectContent || '',
         menuVisibility: res.data.menuVisibility || {
           categories: true,
           tags: true,
           archives: true,
           about: true,
-          diary: true
+          diary: true,
+          projects: true
         }
       });
       api.get('/admin/ai-config').then(res => setAiConfig(res.data));
@@ -44,7 +47,8 @@ export default function Settings() {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.put('/admin/settings', settings);
+      const { aboutContent, projectContent, ...settingsToSave } = settings;
+      await api.put('/admin/settings', settingsToSave);
       await api.put('/admin/ai-config', aiConfig);
       showToast('设置已保存', 'success');
     } catch {
@@ -111,15 +115,6 @@ export default function Settings() {
           </select>
         </div>
         <div className="form-group">
-          <label>关于页面内容 (支持 Markdown)</label>
-          <textarea
-            className="input textarea-about"
-            value={settings.aboutContent}
-            onChange={e => setSettings(prev => ({ ...prev, aboutContent: e.target.value }))}
-            rows={10}
-          />
-        </div>
-        <div className="form-group">
           <label>菜单显示</label>
           <div className="menu-toggles">
             <label className="toggle-item">
@@ -161,6 +156,14 @@ export default function Settings() {
                 onChange={() => toggleMenu('diary')}
               />
               <span>日记</span>
+            </label>
+            <label className="toggle-item">
+              <input
+                type="checkbox"
+                checked={settings.menuVisibility.projects}
+                onChange={() => toggleMenu('projects')}
+              />
+              <span>项目</span>
             </label>
           </div>
         </div>

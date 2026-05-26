@@ -51,6 +51,12 @@ export default function AdminDashboard() {
           <NavLink to="/admin/dashboard/diaries" className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}>
             日记管理
           </NavLink>
+          <NavLink to="/admin/dashboard/about-content" className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}>
+            关于页面
+          </NavLink>
+          <NavLink to="/admin/dashboard/project-content" className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}>
+            项目页面
+          </NavLink>
           <NavLink to="/admin/dashboard/settings" className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}>
             设置
           </NavLink>

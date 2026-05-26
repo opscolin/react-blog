@@ -66,16 +66,16 @@ export default function Layout() {
               最近
             </Link>
             <Link to="/category/ai" className={`nav-link ${isActive('/category/ai') ? 'active' : ''}`}>
-              AI专区    
+              菩提AI
             </Link>
-            {settings?.menuVisibility?.categories && (
-              <Link to="/category" className={`nav-link ${isActive('/category') ? 'active' : ''}`}>
-                分类
+            {settings?.menuVisibility?.projects && (
+              <Link to="/projects" className={`nav-link ${isActive('/projects') ? 'active' : ''}`}>
+                项目
               </Link>
             )}
-            {settings?.menuVisibility?.tags && (
-              <Link to="/tag" className={`nav-link ${isActive('/tag') ? 'active' : ''}`}>
-                标签
+            {settings?.menuVisibility?.diary && (
+              <Link to="/diary" className={`nav-link ${isActive('/diary') ? 'active' : ''}`}>
+                AI日记
               </Link>
             )}
             {settings?.menuVisibility?.archives && (
@@ -86,11 +86,6 @@ export default function Layout() {
             {settings?.menuVisibility?.about && (
               <Link to="/about" className={`nav-link ${isActive('/about') ? 'active' : ''}`}>
                 关于
-              </Link>
-            )}
-            {settings?.menuVisibility?.diary && (
-              <Link to="/diary" className={`nav-link ${isActive('/diary') ? 'active' : ''}`}>
-                日记
               </Link>
             )}
           </nav>

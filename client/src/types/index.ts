@@ -56,12 +56,14 @@ export interface Settings {
   blogLogo: string;
   paginationSize: number;
   aboutContent: string;
+  projectContent: string;
   menuVisibility: {
     categories: boolean;
     tags: boolean;
     archives: boolean;
     about: boolean;
     diary: boolean;
+    projects: boolean;
   };
 }
 
