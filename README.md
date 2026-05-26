@@ -7,8 +7,8 @@
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 18 + Vite + TypeScript + React Router 6 + Zustand + Axios |
-| Backend | Express.js + better-sqlite3 + JWT + bcrypt |
-| Database | SQLite3 |
+| Backend | Express.js + PostgreSQL / SQLite + JWT + bcrypt |
+| Database | PostgreSQL (生产) / SQLite3 (开发) |
 
 ## 核心架构
 
@@ -17,14 +17,15 @@ blog/
 ├── client/                 # 前端 React 应用
 │   └── src/
 │       ├── api/           # API 请求封装
-│       ├── components/    # 通用组件 (Layout, ArticleCard, Modal, Pagination, ThemeToggle)
+│       ├── components/    # 通用组件 (Layout, ArticleCard, CategoryScroll, SEOHead, Timeline, Modal, Pagination, ThemeToggle)
 │       ├── pages/         # 页面组件
 │       │   ├── Home/      # 首页 - 文章列表
 │       │   ├── ArticleDetail/  # 文章详情
 │       │   ├── Category/  # 分类页
 │       │   ├── Tag/       # 标签页
 │       │   ├── Archive/   # 归档页
-│       │   ├── About/     # 关于页
+│       │   ├── Diary/      # AI 日记 (AI 分析、时间线/列表视图)
+│       │   ├── About/      # 关于页
 │       │   └── admin/     # 管理后台
 │       │       ├── Login/         # 登录页
 │       │       ├── Dashboard/     # 管理面板
@@ -32,7 +33,8 @@ blog/
 │       │       ├── ArticleEdit/   # 文章编辑
 │       │       ├── CategoryManage/ # 分类管理
 │       │       ├── TagManage/     # 标签管理
-│       │       └── Settings/      # 博客设置
+│       │       ├── Settings/      # 博客设置
+│       │       └── DiaryManage/    # 日记管理 (CRUD + AI 分析)
 │       ├── store/         # Zustand 状态管理 (auth, theme)
 │       └── styles/        # 全局样式
 ├── server/                # 后端 Express 应用
@@ -46,10 +48,16 @@ blog/
 │           ├── tags.ts          # 标签
 │           ├── archives.ts      # 归档
 │           ├── settings.ts      # 设置
+│           ├── diaries.ts       # AI 日记 (公开)
+│           ├── ai-analysis.ts   # AI 分析
+│           ├── rss.ts           # RSS Feed
+│           ├── sitemap.ts       # Sitemap
 │           └── admin/          # 管理 API
 │               ├── articles.ts
 │               ├── categories.ts
 │               ├── tags.ts
+│               ├── diaries.ts       # 日记管理
+│               ├── ai-config.ts     # AI 配置
 │               └── settings.ts
 └── data/                  # SQLite 数据库文件
 ```
@@ -74,6 +82,8 @@ blog/
 - **articles**: 文章 (title, slug, content, excerpt, category_id, status)
 - **article_tags**: 文章-标签关联表
 - **settings**: 博客设置 (blogTitle, blogLogo, paginationSize, menuVisibility, aboutContent)
+- **diaries**: AI 日记 (date, content, summary, mood, tags, ai_generated, key_points, action_items)
+- **article_views**: 文章阅读量统计 (article_id, ip, created_at)
 
 ## 功能介绍
 
@@ -86,6 +96,7 @@ blog/
 | 标签页 | `/tag/:slug` | 按标签筛选文章 |
 | 归档页 | `/archive` `/archive/:year/:month` | 按年月归档展示 |
 | 关于页 | `/about` | 静态内容 |
+| AI 日记 | `/diary` | AI 分析日记、时间线/列表双视图、模态预览 |
 
 ### 管理后台
 | 页面 | 路径 | 功能 |
@@ -95,6 +106,7 @@ blog/
 | 分类管理 | `/admin/dashboard/categories` | 分类 CRUD |
 | 标签管理 | `/admin/dashboard/tags` | 标签 CRUD |
 | 设置 | `/admin/dashboard/settings` | 博客标题、Logo、菜单显示/隐藏 |
+| 日记管理 | `/admin/dashboard/diaries` | 日记 CRUD、AI 分析、批量操作 |
 
 ### 功能特性
 - 暗色/亮色模式切换
@@ -103,6 +115,10 @@ blog/
 - 文章别名 (slug) 生成
 - 分页支持
 - 菜单项显示控制
+- AI 日记: 时间线/列表双视图、AI 自动分析情绪/关键点/行动项、模态预览
+- 分类滚动导航 (CategoryScroll)
+- SEO 优化: Sitemap、RSS Feed、JSON-LD、Open Graph、Twitter Card
+- 文章阅读量统计 (IP 防刷)
 
 ## 部署安装
 
@@ -162,6 +178,9 @@ cd server && npm run build
 | GET | `/api/archives` | 获取归档列表 |
 | GET | `/api/settings` | 获取博客设置 |
 | GET | `/api/health` | 健康检查 |
+| GET | `/api/diaries` | 获取日记列表 (分页) |
+| GET | `/api/diaries/:id` | 获取单篇日记 |
+| POST | `/api/diaries/:id/reanalyze` | 重新 AI 分析日记 |
 
 ### 管理 API (需 JWT)
 | Method | Endpoint | 描述 |
@@ -174,6 +193,9 @@ cd server && npm run build
 | GET/POST/PUT/DELETE | `/api/admin/categories` | 分类管理 |
 | GET/POST/PUT/DELETE | `/api/admin/tags` | 标签管理 |
 | GET/PUT | `/api/admin/settings` | 设置管理 |
+| GET/POST/PUT/DELETE | `/api/admin/diaries` | 日记管理 |
+| POST | `/api/admin/diaries/:id/reanalyze` | AI 重新分析 |
+| GET/PUT | `/api/admin/ai-config` | AI 配置管理 |
 
 ## 注意事项
 
@@ -182,3 +204,12 @@ cd server && npm run build
 3. **数据库**: SQLite 文件位于 `server/data/blog.db`，首次启动自动创建
 4. **主题**: 暗色模式使用深蓝色背景 (#0a192f) + 青色强调色 (#64ffda)
 5. **API 代理**: 开发模式下 Vite 代理 `/api` 请求到后端
+
+## 版本历史
+
+| 版本 | 日期 | 更新内容 |
+|------|------|----------|
+| 2.0.1 | 2026-05-26 | 新增 AI 日记功能 (时间线/列表双视图、AI 情绪分析、关键点/行动项提取、模态预览、管理后台 CRUD) |
+| 2.0.0 | 2026-05-18 | PostgreSQL 迁移支持、SEO/AIO 优化 (Sitemap/RSS/JSON-LD/OG)、文章阅读量统计、分类滚动导航 |
+| 1.0.1 | 2025-05-12 | 修复后台空白页面 |
+| 1.0.0 | 2025-05-10 | 初始版本 |
